@@ -1,0 +1,11 @@
+[package]
+name = "flow-tui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ratatui = "0.29.0"
+flow-app = { path = "../app" }
+serde.workspace = true
+uuid.workspace = true
+anyhow.workspace = true

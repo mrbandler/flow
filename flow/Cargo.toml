@@ -1,0 +1,19 @@
+[package]
+name = "flow"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+flow-cli = { path = "../crates/cli" }
+flow-tui = { path = "../crates/tui", optional = true }
+flow-desktop = { path = "../crates/desktop", optional = true }
+clap.workspace = true
+anyhow.workspace = true
+
+[features]
+default = []
+tui = ["dep:flow-tui"]
+desktop = ["dep:flow-desktop"]
+all = ["tui", "desktop"]

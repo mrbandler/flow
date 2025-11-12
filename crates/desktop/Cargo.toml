@@ -1,0 +1,11 @@
+[package]
+name = "flow-desktop"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+iced = { version = "0.13.1", features = ["tokio"] }
+flow-app = { path = "../app" }
+serde.workspace = true
+uuid.workspace = true
+anyhow.workspace = true

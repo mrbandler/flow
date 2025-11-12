@@ -1,0 +1,11 @@
+[package]
+name = "flow-cli"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+flow-core = { path = "../core" }
+clap.workspace = true
+serde.workspace = true
+uuid.workspace = true
+anyhow.workspace = true

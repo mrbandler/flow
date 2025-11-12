@@ -1,0 +1,106 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'flow'",
+      "cargo": {
+        "args": ["build", "--bin=flow", "--package=flow"],
+        "filter": {
+          "name": "flow",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'flow'",
+      "cargo": {
+        "args": ["test", "--no-run", "--bin=flow", "--package=flow"],
+        "filter": {
+          "name": "flow",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'flow_cli'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=flow-cli"],
+        "filter": {
+          "name": "flow_cli",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'flow_core'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=flow-core"],
+        "filter": {
+          "name": "flow_core",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'flow_desktop'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=flow-desktop"],
+        "filter": {
+          "name": "flow_desktop",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'flow_app'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=flow-app"],
+        "filter": {
+          "name": "flow_app",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'flow_tui'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=flow-tui"],
+        "filter": {
+          "name": "flow_tui",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
