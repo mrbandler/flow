@@ -120,29 +120,6 @@ Self-host a sync server (just a headless Flow instance with an API) to keep ever
 
 Flow is built with Rust for performance and reliability. The architecture is modular and uses [Loro CRDT](https://loro.dev/) for conflict-free synchronization.
 
-```
-┌─────────────────────────────────────────────────┐
-│                                                 │
-│  CLI        TUI       Desktop       Web         │
-│   │          │           │           │          │
-│   └──────────┴───────────┴───────────┘          │
-│                    │                            │
-│              ┌─────▼──────┐                     │
-│              │  Core Lib  │                     │
-│              │  (Rust)    │                     │
-│              └─────┬──────┘                     │
-│                    │                            │
-│         ┌──────────┼──────────┐                 │
-│         │          │          │                 │
-│    ┌────▼───┐  ┌──▼───┐  ┌──▼────┐             │
-│    │ Local  │  │ Sync │  │ Query │             │
-│    │Storage │  │Engine│  │Engine │             │
-│    │(MD)    │  │(CRDT)│  │       │             │
-│    └────────┘  └──────┘  └───────┘             │
-│                                                 │
-└─────────────────────────────────────────────────┘
-```
-
 **Key Technologies:**
 - **Rust** - Performance, safety, and cross-platform support
 - **Loro CRDT** - Conflict-free synchronization
