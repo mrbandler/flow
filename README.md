@@ -116,16 +116,6 @@ Self-host a sync server (just a headless Flow instance with an API) to keep ever
 - **Opt-in Complexity** - Start simple, add features as you need them
 - **Maximum Flexibility** - Use it your way, integrate with your tools
 
-## Architecture
-
-Flow is built with Rust for performance and reliability. The architecture is modular and uses [Loro CRDT](https://loro.dev/) for conflict-free synchronization.
-
-**Key Technologies:**
-- **Rust** - Performance, safety, and cross-platform support
-- **Loro CRDT** - Conflict-free synchronization
-- **Markdown** - Plain text storage
-- **Local-First** - Your data lives on your machine by default
-
 ## Roadmap
 
 ### Phase 1: Foundation (Current)
@@ -171,7 +161,7 @@ I am building what I felt was missing: a developer-first, outliner-first note-ta
 
 ## License
 
-Flow is licensed under the [MIT License](./LICENSE).
+Flow is licensed under the [AGPL-3 License](./LICENSE).
 
 ---
 
