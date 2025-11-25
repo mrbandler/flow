@@ -1,9 +1,0 @@
-[package]
-name = "flow-config"
-version.workspace = true
-edition.workspace = true
-
-[dependencies]
-confy = { version = "2.0.0" }
-serde.workspace = true
-anyhow.workspace = true

@@ -7,5 +7,8 @@ edition.workspace = true
 flow-core = { path = "../core" }
 clap.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 uuid.workspace = true
-anyhow.workspace = true
+miette.workspace = true
+thiserror.workspace = true
+inquire = "0.7"

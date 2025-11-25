@@ -10,7 +10,7 @@ flow-cli = { path = "../crates/cli" }
 flow-tui = { path = "../crates/tui", optional = true }
 flow-desktop = { path = "../crates/desktop", optional = true }
 clap.workspace = true
-anyhow.workspace = true
+miette.workspace = true
 
 [features]
 default = []

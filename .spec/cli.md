@@ -279,6 +279,74 @@ List all registered graphs.
 
 ---
 
+### `flow clean`
+
+Remove orphaned graphs from configuration.
+
+**Description:**
+Scans all registered graphs in the configuration and removes entries for graphs whose directories no longer exist or are no longer valid Flow graphs.
+
+**Flags:**
+- `--dry-run`: Show what would be removed without making changes
+
+**Behavior:**
+- Checks each registered graph path
+- Verifies the graph directory exists
+- Verifies the `.flow` directory exists within it
+- Removes invalid entries from configuration
+- If active graph is removed, clears active graph selection
+
+**Output (default):**
+```
+Checking 3 registered graphs...
+Removed: work (/home/user/deleted-graph) - directory not found
+Removed: archive (/mnt/removed/notes) - not a valid graph
+Kept: personal (/home/user/notes)
+
+Cleaned 2 orphaned graphs from configuration
+```
+
+**Output (--dry-run):**
+```
+Checking 3 registered graphs...
+Would remove: work (/home/user/deleted-graph) - directory not found
+Would remove: archive (/mnt/removed/notes) - not a valid graph
+Would keep: personal (/home/user/notes)
+
+Dry run: 2 graphs would be removed
+```
+
+**Output (--json):**
+```json
+{
+  "checked": 3,
+  "removed": [
+    {
+      "name": "work",
+      "path": "/home/user/deleted-graph",
+      "reason": "directory not found"
+    },
+    {
+      "name": "archive",
+      "path": "/mnt/removed/notes",
+      "reason": "not a valid graph"
+    }
+  ],
+  "kept": [
+    {
+      "name": "personal",
+      "path": "/home/user/notes"
+    }
+  ]
+}
+```
+
+**Exit Codes:**
+- 0: Success (graphs removed or none needed removal)
+- 1: Configuration error
+
+---
+
 ### `flow status`
 
 Show current graph health and statistics.

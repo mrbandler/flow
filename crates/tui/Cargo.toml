@@ -8,4 +8,4 @@ ratatui = "0.29.0"
 flow-app = { path = "../app" }
 serde.workspace = true
 uuid.workspace = true
-anyhow.workspace = true
+miette.workspace = true
