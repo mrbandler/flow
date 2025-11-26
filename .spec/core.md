@@ -1,1053 +1,673 @@
-# Flow Core Module Specification
+# Flow Core Architecture Specification
 
-## Overview
+## Architecture Overview
 
-The core module provides the fundamental graph operations and data management layer. All frontends (CLI, TUI, desktop GUI, web) interact with the graph exclusively through this module's API.
+Flow uses an **event-sourced architecture** where Loro CRDTs serve as the single source of truth for all content mutations. Changes flow unidirectionally from Loro through subscriber systems that maintain derived state.
 
-**Responsibilities:**
-- Node lifecycle management (CRUD)
-- Reference tracking and resolution
-- Tag and property management
-- Query execution
-- Index maintenance
-- Persistence and serialization
-- CRDT synchronization primitives
-- Schema validation
-
-**Non-Responsibilities:**
-- User interface rendering
-- Input handling
-- Command parsing
-- Network communication (handled by server module)
-
----
-
-## Architecture Layers
+### Data Flow
 
 ```
-┌─────────────────────────────────────┐
-│   Frontends (CLI, TUI, GUI, Web)    │
-└─────────────────┬───────────────────┘
-                  │
-┌─────────────────▼───────────────────┐
-│          Core Module API            │
-│  (Public interface for all clients) │
-└─────────────────┬───────────────────┘
-                  │
-┌─────────────────▼───────────────────┐
-│         Core Systems                │
-│  ┌──────────────────────────────┐  │
-│  │  Graph State                 │  │
-│  │  - Nodes, Tags, Properties   │  │
-│  │  - Reference Graph           │  │
-│  └──────────────────────────────┘  │
-│  ┌──────────────────────────────┐  │
-│  │  Index System                │  │
-│  │  - Tag Index                 │  │
-│  │  - Property Index            │  │
-│  │  - Full-text Index           │  │
-│  │  - Reference Index           │  │
-│  └──────────────────────────────┘  │
-│  ┌──────────────────────────────┐  │
-│  │  Query Engine                │  │
-│  │  - Expression Parser         │  │
-│  │  - Filter Executor           │  │
-│  │  - Result Ranking            │  │
-│  └──────────────────────────────┘  │
-│  ┌──────────────────────────────┐  │
-│  │  Validation System           │  │
-│  │  - Schema Validation         │  │
-│  │  - Type Checking             │  │
-│  │  - Referential Integrity     │  │
-│  └──────────────────────────────┘  │
-│  ┌──────────────────────────────┐  │
-│  │  Persistence Layer           │  │
-│  │  - Markdown I/O              │  │
-│  │  - Loro CRDT Integration     │  │
-│  │  - Transaction Management    │  │
-│  └──────────────────────────────┘  │
-└─────────────────┬───────────────────┘
-                  │
-┌─────────────────▼───────────────────┐
-│          Filesystem                 │
-│  - Markdown files                   │
-│  - .flow/ metadata                  │
-│  - Loro container state             │
-└─────────────────────────────────────┘
+User Action
+    ↓
+Loro Container Operations (Source of Truth)
+    ↓
+Change Events
+    ↓ ↓ ↓
+    ↓ ↓ └─→ [Extension Point: Plugin Hooks]
+    ↓ └───→ [Indexer: Tantivy + SQLite]  
+    └─────→ [Persister: Markdown Writer]
 ```
 
----
+**Core Principle**: Loro receives all writes. Subscribers react to changes. All reads query derived indexes.
 
-## Core Data Structures
+## Component Architecture
 
-### Node
+### 1. Loro Document Layer (Source of Truth)
 
-Primary entity in the graph. Every piece of content is a node.
+**Responsibility**: Maintain authoritative CRDT state with conflict-free replication semantics.
 
+**Structure**:
+```
+LoroDoc
+├─ nodes: Map<NodeID, NodeContainer>
+│  └─ <node-id>: Map
+│     ├─ content: Text (Loro Text CRDT)
+│     ├─ parent: String (NodeID or empty for root)
+│     ├─ children: List (ordered NodeIDs)
+│     ├─ created_at: i64
+│     └─ modified_at: i64
+│
+└─ files: Map<FilePath, FileContainer>
+   └─ <file-path>: Map
+      └─ roots: List (root node IDs in file order)
+```
+
+**Operations**: Insert, update, delete nodes. All operations emit change events.
+
+**Persistence**: `.flow/graph.loro` as binary snapshot. Configurable history retention window.
+
+### 2. Index Layer (Query Engine)
+
+**Responsibility**: Enable fast queries over graph structure, content, and metadata.
+
+**Technology Stack**:
+- **Tantivy**: Full-text search engine for content queries
+- **SQLite**: Structured data for relations, hierarchy, and object model
+
+#### Tantivy Index
+
+**Purpose**: Full-text search across node content.
+
+**Schema**:
 ```rust
-struct Node {
-    id: NodeId,              // UUID v4
-    content: String,         // Markdown content (cleaned of inline syntax)
-    children: Vec<NodeId>,   // Child node IDs (ordered)
-    parent: Option<NodeId>,  // Parent node ID
-    tags: Vec<String>,       // Tag names applied to this node
-    properties: PropertyMap, // Key-value properties
-    references: ReferenceSet, // Outgoing and incoming references
-    metadata: NodeMetadata,  // Created, modified, author, etc.
-    crdt_version: u64,       // Loro version vector
-}
-
-type NodeId = Uuid;
-
-struct NodeMetadata {
-    created: DateTime<Utc>,
-    modified: DateTime<Utc>,
-    author: String,
-    file_path: Option<PathBuf>, // Source markdown file
+Schema {
+    id: String (STORED, INDEXED),      // NodeID
+    content: Text (INDEXED),            // Searchable content
+    file_path: String (STORED),         // For result display
 }
 ```
 
-### Property
+**Operations**:
+- `search(query: &str) -> Vec<NodeID>` - Full-text search with BM25 ranking
+- `prefix_search(prefix: &str) -> Vec<NodeID>` - Auto-complete support
 
-Typed key-value pair attached to nodes.
+**Location**: `.flow/tantivy_index/`
 
-```rust
-struct Property {
-    key: String,
-    value: PropertyValue,
-    property_type: PropertyType,
-}
+#### SQLite Database
 
-enum PropertyValue {
-    String(String),
-    Number(f64),
-    Boolean(bool),
-    Date(DateTime<Utc>),
-    Reference(NodeId),
-    List(Vec<PropertyValue>),
-}
+**Purpose**: Structured queries for graph relations and object model.
 
-enum PropertyType {
-    String,
-    Number,
-    Boolean,
-    Date,
-    Reference,
-    List(Box<PropertyType>),
-    Enum(Vec<String>), // Constrained to specific values
-}
-
-type PropertyMap = HashMap<String, Property>;
-```
-
-### Reference
-
-Bidirectional link between nodes.
-
-```rust
-struct Reference {
-    source: NodeId,
-    target: NodeId,
-    reference_type: ReferenceType,
-    created: DateTime<Utc>,
-}
-
-enum ReferenceType {
-    Explicit,      // User-created via flow link
-    Implicit,      // Extracted from content (wiki-links, etc.)
-    Hierarchical,  // Parent-child relationship
-}
-
-struct ReferenceSet {
-    outgoing: Vec<Reference>,
-    incoming: Vec<Reference>,
-}
-```
-
-### Tag
-
-Marker that converts nodes into objects with schema.
-
-```rust
-struct Tag {
-    name: String,
-    definition: Option<NodeId>, // Points to #tag-definition node
-    color: Option<String>,
-    icon: Option<String>,
-}
-```
-
-### Graph
-
-Root container for all graph state.
-
-```rust
-struct Graph {
-    id: Uuid,
-    name: String,
-    path: PathBuf,
-    nodes: HashMap<NodeId, Node>,
-    tags: HashMap<String, Tag>,
-    indexes: IndexSystem,
-    loro_doc: LoroDoc,
-    dirty_nodes: HashSet<NodeId>,
-}
-```
-
----
-
-## Node Management
-
-### Node Creation
-
-```rust
-pub fn create_node(
-    graph: &mut Graph,
-    content: &str,
-    parent: Option<NodeId>,
-    tags: Vec<String>,
-    properties: PropertyMap,
-) -> Result<NodeId, GraphError>
-```
-
-**Process:**
-1. Generate new UUID
-2. Parse inline syntax from content (#tags, key::value)
-3. Merge explicit tags/properties with parsed ones
-4. Create Node struct
-5. Update parent's children list
-6. Add to graph.nodes
-7. Update indexes
-8. Create Loro operations
-9. Mark as dirty
-10. Return NodeId
-
-### Node Retrieval
-
-```rust
-pub fn get_node(graph: &Graph, id: NodeId) -> Result<&Node, GraphError>
-pub fn get_node_mut(graph: &mut Graph, id: NodeId) -> Result<&mut Node, GraphError>
-```
-
-### Node Update
-
-```rust
-pub fn update_node_content(
-    graph: &mut Graph,
-    id: NodeId,
-    new_content: &str,
-) -> Result<(), GraphError>
-
-pub fn update_node_properties(
-    graph: &mut Graph,
-    id: NodeId,
-    properties: PropertyMap,
-) -> Result<(), GraphError>
-```
-
-**Process:**
-1. Validate node exists
-2. Parse inline syntax if updating content
-3. Update Node struct
-4. Update modified timestamp
-5. Trigger index updates
-6. Create Loro operations
-7. Mark as dirty
-8. Run validation
-
-### Node Deletion
-
-```rust
-pub fn delete_node(
-    graph: &mut Graph,
-    id: NodeId,
-    recursive: bool,
-    reparent_children: bool,
-) -> Result<(), GraphError>
-```
-
-**Process:**
-1. Validate node exists
-2. If recursive, delete all descendants
-3. If reparent_children, move children to deleted node's parent
-4. Remove from parent's children list
-5. Delete all references to/from node
-6. Remove from indexes
-7. Remove from graph.nodes
-8. Create Loro deletion operations
-9. Delete markdown file if exists
-
-### Node Hierarchy
-
-```rust
-pub fn move_node(
-    graph: &mut Graph,
-    node_id: NodeId,
-    new_parent: NodeId,
-    position: Option<usize>,
-) -> Result<(), GraphError>
-
-pub fn get_children(graph: &Graph, node_id: NodeId) -> Vec<NodeId>
-pub fn get_parent(graph: &Graph, node_id: NodeId) -> Option<NodeId>
-pub fn get_ancestors(graph: &Graph, node_id: NodeId) -> Vec<NodeId>
-pub fn get_descendants(graph: &Graph, node_id: NodeId) -> Vec<NodeId>
-```
-
----
-
-## Tag Management
-
-```rust
-pub fn apply_tag(
-    graph: &mut Graph,
-    node_id: NodeId,
-    tag: &str,
-) -> Result<(), GraphError>
-
-pub fn remove_tag(
-    graph: &mut Graph,
-    node_id: NodeId,
-    tag: &str,
-) -> Result<(), GraphError>
-
-pub fn get_nodes_with_tag(graph: &Graph, tag: &str) -> Vec<NodeId>
-
-pub fn list_all_tags(graph: &Graph) -> Vec<String>
-```
-
-**Tag Index:**
-```rust
-struct TagIndex {
-    tag_to_nodes: HashMap<String, HashSet<NodeId>>,
-    node_to_tags: HashMap<NodeId, HashSet<String>>,
-}
-```
-
-### Tag Templates
-
-Tags can include template structures. When a tag definition node has children, those children are treated as a template.
-
-```rust
-pub fn get_tag_template(
-    graph: &Graph,
-    tag: &str,
-) -> Option<Vec<NodeId>>
-
-pub fn has_template(
-    graph: &Graph,
-    tag: &str,
-) -> bool
-
-pub fn apply_tag_with_template(
-    graph: &mut Graph,
-    node_id: NodeId,
-    tag: &str,
-) -> Result<(), GraphError>
-```
-
-**Template Application Process:**
-
-1. Apply the tag to the node
-2. Look up tag definition node by querying for `'tag-definition' IN tags AND name = '<tag>'`
-3. Get all children of the tag definition node
-4. Deep copy each child node recursively
-5. Add copies as children of the target node
-6. Preserve structure and properties from template
-
-**Example:**
-
-```rust
-// Tag definition with template
-let tag_def_id = create_tag_definition(graph, "project", vec!["status"])?;
-let goals_id = create_node(graph, "## Goals", Some(tag_def_id), vec![], HashMap::new())?;
-let milestones_id = create_node(graph, "## Milestones", Some(tag_def_id), vec![], HashMap::new())?;
-
-// Apply tag with template to a node
-let node_id = create_node(graph, "New Project", None, vec![], HashMap::new())?;
-apply_tag_with_template(graph, node_id, "project")?;
-
-// Node now has "## Goals" and "## Milestones" as children
-assert_eq!(get_children(graph, node_id).len(), 2);
-```
-
----
-
-## Property Management
-
-```rust
-pub fn set_property(
-    graph: &mut Graph,
-    node_id: NodeId,
-    key: &str,
-    value: PropertyValue,
-) -> Result<(), GraphError>
-
-pub fn get_property(
-    graph: &Graph,
-    node_id: NodeId,
-    key: &str,
-) -> Option<&Property>
-
-pub fn delete_property(
-    graph: &mut Graph,
-    node_id: NodeId,
-    key: &str,
-) -> Result<(), GraphError>
-
-pub fn get_nodes_by_property(
-    graph: &Graph,
-    key: &str,
-    value: &PropertyValue,
-) -> Vec<NodeId>
-```
-
-**Property Index:**
-```rust
-struct PropertyIndex {
-    // key -> value -> nodes
-    property_values: HashMap<String, HashMap<PropertyValue, HashSet<NodeId>>>,
-    // node -> properties
-    node_properties: HashMap<NodeId, PropertyMap>,
-}
-```
-
----
-
-## Reference Management
-
-### Explicit References
-
-User-created links between nodes.
-
-```rust
-pub fn create_reference(
-    graph: &mut Graph,
-    source: NodeId,
-    target: NodeId,
-) -> Result<(), GraphError>
-
-pub fn delete_reference(
-    graph: &mut Graph,
-    source: NodeId,
-    target: NodeId,
-) -> Result<(), GraphError>
-
-pub fn get_outgoing_references(graph: &Graph, node_id: NodeId) -> Vec<Reference>
-pub fn get_incoming_references(graph: &Graph, node_id: NodeId) -> Vec<Reference>
-pub fn get_all_references(graph: &Graph, node_id: NodeId) -> ReferenceSet
-```
-
-### Implicit References
-
-Extracted from content (wiki-links, @mentions, etc.).
-
-```rust
-pub fn extract_implicit_references(content: &str) -> Vec<NodeId>
-pub fn update_implicit_references(graph: &mut Graph, node_id: NodeId) -> Result<(), GraphError>
-```
-
-**Reference Patterns:**
-- `[[node-id]]` - Wiki-link to node
-- `@node-id` - Mention/reference
-- Extracted during content updates
-
-**Reference Index:**
-```rust
-struct ReferenceIndex {
-    outgoing: HashMap<NodeId, HashSet<NodeId>>,
-    incoming: HashMap<NodeId, HashSet<NodeId>>,
-    // Reference graph for path finding
-    graph: petgraph::Graph<NodeId, ()>,
-}
-```
-
-### Graph Traversal
-
-```rust
-pub fn find_path(
-    graph: &Graph,
-    from: NodeId,
-    to: NodeId,
-) -> Option<Vec<NodeId>>
-
-pub fn find_related_nodes(
-    graph: &Graph,
-    node_id: NodeId,
-    depth: usize,
-) -> Vec<NodeId>
-
-pub fn get_connected_component(
-    graph: &Graph,
-    node_id: NodeId,
-) -> Vec<NodeId>
-```
-
----
-
-## Query Engine
-
-### SQL Query Language
-
-Flow uses SQL syntax for querying the graph. Nodes are treated as rows in a virtual `nodes` table.
-
-**Virtual Schema:**
-
+**Schema**:
 ```sql
-TABLE nodes (
+-- Node metadata
+CREATE TABLE nodes (
     id TEXT PRIMARY KEY,
-    content TEXT,
-    created TIMESTAMP,
-    modified TIMESTAMP,
-    author TEXT,
-    tags TEXT[],              -- Array of tag names
+    content TEXT NOT NULL,
+    file_path TEXT,
     parent_id TEXT,
-    -- All properties flattened as columns
-    -- e.g., status, priority, owner, etc.
-)
+    created_at INTEGER,
+    modified_at INTEGER,
+    FOREIGN KEY (parent_id) REFERENCES nodes(id)
+);
+CREATE INDEX idx_nodes_parent ON nodes(parent_id);
+CREATE INDEX idx_nodes_file ON nodes(file_path);
+
+-- Bidirectional references
+CREATE TABLE references (
+    source_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    target_text TEXT NOT NULL,
+    PRIMARY KEY (source_id, target_id)
+);
+CREATE INDEX idx_references_target ON references(target_id);
+
+-- Unresolved references (links to non-existent nodes)
+CREATE TABLE unresolved_references (
+    source_id TEXT NOT NULL,
+    target_text TEXT NOT NULL,
+    PRIMARY KEY (source_id, target_text)
+);
+
+-- Tag system
+CREATE TABLE tags (
+    node_id TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (node_id, tag)
+);
+CREATE INDEX idx_tags_tag ON tags(tag);
+
+-- Property system (key::value inline syntax)
+CREATE TABLE properties (
+    node_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    value_type TEXT NOT NULL,  -- 'string' | 'number' | 'date' | 'reference'
+    PRIMARY KEY (node_id, key)
+);
+CREATE INDEX idx_properties_key_value ON properties(key, value);
+
+-- Version tracking for index invalidation
+CREATE TABLE metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 ```
 
-**Supported SQL Features:**
+**Operations**:
+- `get_backlinks(node_id) -> Vec<NodeID>`
+- `get_nodes_with_tag(tag) -> Vec<NodeID>`
+- `query_by_property(key, value) -> Vec<NodeID>`
+- `get_children(node_id) -> Vec<NodeID>` (ordered)
 
-```sql
--- Basic selection
-SELECT * FROM nodes WHERE 'project' IN tags
+**Location**: `.flow/graph.db`
 
--- Property filtering
-SELECT * FROM nodes WHERE status = 'active' AND priority > 3
+### 3. Subscriber System
 
--- Date comparisons
-SELECT * FROM nodes WHERE created > '2024-11-01'
-SELECT * FROM nodes WHERE modified < CURRENT_DATE - INTERVAL '7 days'
+**Pattern**: Observer pattern with synchronous execution in defined order.
 
--- Content search
-SELECT * FROM nodes WHERE content LIKE '%CRDT%'
-SELECT * FROM nodes WHERE content ~ 'regex pattern'
+#### Subscriber 1: Markdown Persister
 
--- Multiple tags
-SELECT * FROM nodes WHERE 'project' IN tags AND 'active' IN tags
+**Trigger**: Node content changes, hierarchy changes.
 
--- Combining conditions
-SELECT * FROM nodes 
-WHERE ('task' IN tags OR 'bug' IN tags) 
-  AND status != 'done' 
-  AND priority >= 4
+**Behavior**:
+1. Mark file as dirty when any node in file changes
+2. On `save()`, reconstruct markdown from Loro containers
+3. Walk node hierarchy to generate outline structure
+4. Write to filesystem
 
--- Sorting
-SELECT * FROM nodes WHERE 'project' IN tags ORDER BY priority DESC, created ASC
+**Batching**: Changes buffered until explicit `save()` call to avoid excessive I/O.
 
--- Limiting results
-SELECT * FROM nodes WHERE 'article' IN tags LIMIT 10
+#### Subscriber 2: Index Updater
 
--- Hierarchical queries
-SELECT * FROM nodes WHERE parent_id = 'abc-123-def'
+**Trigger**: All Loro change events.
 
--- Date references work in queries
-SELECT * FROM nodes WHERE created >= '@-7d'
+**Behavior for content changes**:
+1. Extract node content from Loro
+2. Update Tantivy document (delete + reindex)
+3. Update SQLite `nodes` table
+4. Parse and update references (regex: `\[\[([^\]]+)\]\]`)
+5. Parse and update tags (regex: `#([a-zA-Z0-9_-]+)`)
+6. Parse and update properties (regex: `(\w+)::([^\s]+)`)
+
+**Behavior for structure changes**:
+1. Update parent/child relationships in SQLite
+2. Update file mappings
+
+**Reference Resolution**:
+- Search SQLite for nodes matching `[[target_text]]`
+- If found: Insert into `references` table
+- If not found: Insert into `unresolved_references` table
+- On any node content update: Retry all unresolved references
+
+### 4. Markdown Layer (Presentation)
+
+**Format**:
+```markdown
+- Root node content
+  - Child node content
+    - Grandchild node content
+- Another root node
 ```
 
-**Special Query Features:**
+**Parsing**: On bootstrap, import existing markdown files into Loro.
 
-```sql
--- Tag existence
-'tag-name' IN tags
+**Generation**: Reconstruct markdown from Loro node hierarchy during save.
 
--- Property existence
-property_name IS NOT NULL
+## Node Identity System
 
--- Array/list properties
-'item' IN property_list
+### ID Format: Nanoid
 
--- Reference properties
-owner = '@node-id'
+**Rationale**:
+- **Compact**: 21 characters (default) vs UUID's 36
+- **URL-safe**: `A-Za-z0-9_-` alphabet
+- **CLI-friendly**: Short enough to type/remember
+- **Customizable**: Configurable length and alphabet
 
--- Current date/time
-CURRENT_DATE
-CURRENT_TIMESTAMP
-NOW()
-
--- Date arithmetic
-created > CURRENT_DATE - INTERVAL '7 days'
-due_date < '@today'
-```
-
-### Query Execution
-
+**Generation**:
 ```rust
-pub struct SqlQuery {
-    ast: sqlparser::ast::Statement,
-}
+use nanoid::nanoid;
 
-pub fn parse_sql_query(sql: &str) -> Result<SqlQuery, ParseError>
+pub struct NodeId(String);
 
-pub fn execute_sql_query(
-    graph: &Graph,
-    query: &SqlQuery,
-) -> Result<Vec<NodeId>, GraphError>
-```
-
-**Execution Strategy:**
-1. Parse SQL string into AST using `sqlparser` crate
-2. Extract WHERE clause conditions
-3. For each condition, use appropriate index:
-   - Tag filters (`'tag' IN tags`) → TagIndex
-   - Property filters (`prop = value`) → PropertyIndex
-   - Content filters (`content LIKE '%text%'`) → FullTextIndex
-   - Hierarchical filters (`parent_id = 'id'`) → Reference lookups
-4. Combine results using set operations (AND, OR, NOT)
-5. Apply ORDER BY, LIMIT, OFFSET
-6. Return ordered NodeId list
-
-**Index Utilization:**
-
-Query planner automatically uses indexes:
-
-```sql
--- Uses TagIndex
-WHERE 'project' IN tags
-
--- Uses PropertyIndex  
-WHERE status = 'active'
-
--- Uses FullTextIndex
-WHERE content LIKE '%search term%'
-
--- Uses multiple indexes, combines with AND
-WHERE 'task' IN tags AND priority > 3
-
--- Full scan (no applicable index)
-WHERE LENGTH(content) > 1000
-```
-
----
-
-## Index System
-
-### Full-Text Search Index
-
-```rust
-struct FullTextIndex {
-    // Inverted index: term -> nodes containing term
-    term_index: HashMap<String, HashSet<NodeId>>,
-    // Node -> terms (for updates)
-    node_terms: HashMap<NodeId, HashSet<String>>,
-}
-
-pub fn index_node_content(index: &mut FullTextIndex, node: &Node)
-pub fn search_content(index: &FullTextIndex, query: &str) -> Vec<NodeId>
-pub fn remove_from_index(index: &mut FullTextIndex, node_id: NodeId)
-```
-
-**Tokenization:**
-- Lowercase normalization
-- Stop word removal (optional)
-- Stemming (optional)
-- Support for CJK languages
-- Preserve markdown syntax awareness
-
-### Index Maintenance
-
-All indexes updated automatically on node mutations:
-
-```rust
-pub fn update_indexes(
-    graph: &mut Graph,
-    node_id: NodeId,
-    operation: IndexOperation,
-)
-
-enum IndexOperation {
-    Insert,
-    Update,
-    Delete,
+impl NodeId {
+    pub fn new() -> Self {
+        Self(nanoid!(12))  // 12 chars: ~180 years at 1000 IDs/hour
+    }
 }
 ```
 
-**Update triggers:**
-- Node creation → Insert into all indexes
-- Node content change → Update FullTextIndex
-- Tag add/remove → Update TagIndex
-- Property set/delete → Update PropertyIndex
-- Reference create/delete → Update ReferenceIndex
-- Node deletion → Remove from all indexes
+**Collision Probability**: For 12-character Nanoid with default alphabet, ~1% collision chance after 100 million IDs.
 
----
+**Properties**:
+- Stable across edits
+- Unique per node
+- Independent of file location
+- Never reused
 
-## Persistence Layer
+## Graph Structure
 
-### Storage Structure
+```rust
+pub struct Graph {
+    path: PathBuf,
+    metadata: GraphMetadata,
+    
+    // Source of truth
+    document: LoroDoc,
+    
+    // Derived indexes
+    tantivy_index: tantivy::Index,
+    sqlite_db: rusqlite::Connection,
+    
+    // Dirty tracking
+    dirty_files: HashSet<PathBuf>,
+    
+    // Subscribers
+    subscriber_handles: Vec<SubscriptionId>,
+}
+```
+
+## Initialization Sequence
+
+### New Graph: `Graph::init(path, name)`
+
+1. Create directory structure
+2. Initialize empty Loro document
+3. Create Tantivy index with schema
+4. Create SQLite database with schema
+5. Write metadata to `.flow/graph.toml`
+6. Register subscribers
+7. Perform initial save
+
+### Load Existing: `Graph::load(path)`
+
+1. Load metadata from `.flow/graph.toml`
+2. Load Loro document from `.flow/graph.loro`
+3. Open Tantivy index at `.flow/tantivy_index/`
+4. Open SQLite database at `.flow/graph.db`
+5. Check if indexes need rebuild (version mismatch)
+6. If Loro empty but markdown exists: Bootstrap import
+7. Register subscribers for incremental updates
+
+## Markdown Import System
+
+### Import Scenarios
+
+**1. Bootstrap Import**: Initial setup with existing markdown files (Loro empty).
+
+**2. Incremental Import**: Detect and import externally modified markdown files.
+
+**3. Explicit Import**: User-triggered import via CLI command.
+
+### Import Architecture
 
 ```
-graph_root/
-├── .flow/
-│   ├── graph.toml              # Graph metadata
-│   ├── loro.bin                # CRDT state
-│   ├── context                 # Last accessed node
-│   └── indexes/                # Serialized indexes (optional)
-├── journal/
-│   ├── 2024-11-20.md
-│   ├── 2024-11-21.md
-│   └── 2024-11-24.md
-└── nodes/
-    ├── abc-123-def.md
-    ├── xyz-789-abc.md
-    └── ...
+External Markdown Change
+    ↓
+Detection (File Watcher or Timestamp Check)
+    ↓
+Parse Markdown → Outline AST
+    ↓
+Pause Markdown Writer Subscriber
+    ↓
+Import to Loro Containers
+    ↓
+Index Subscriber Runs (build SQLite + Tantivy)
+    ↓
+Resume Markdown Writer Subscriber
 ```
 
-### Markdown File Format
+**Critical**: Markdown writer subscriber must be paused during import to prevent circular write loops (import → subscriber writes file → triggers import → ...).
+
+### Bootstrap Import Process
+
+**Trigger**: `Graph::load()` detects Loro document empty but markdown files exist.
+
+**Process**:
+1. Scan directory tree for `.md` files
+2. For each file:
+   - Parse markdown into outline AST
+   - Extract nested list structure
+   - Create Loro nodes with generated NodeIDs
+   - Build parent-child relationships
+   - Add to file's roots list
+3. Trigger full index rebuild from Loro state
+4. Register subscribers for future changes
+
+### Outline Parsing
+
+**Input**: Markdown with nested lists.
 
 ```markdown
----
-id: abc-123-def
-created: 2024-11-20T14:22:00Z
-modified: 2024-11-24T10:15:00Z
-tags: [project, active]
----
-
-# Project: Flow CLI
-
-This is the content with inline properties like status::planning.
-
-Child nodes are represented as nested list items:
-- First child node
-  - Grandchild node
-- Second child node
-
-References: [[xyz-789-abc]], [[def-456-ghi]]
+- Root node content
+  - Child node content
+    - Grandchild node content
+  - Another child
+- Second root node
 ```
 
-### Persistence Operations
+**Output**: Hierarchical structure.
 
 ```rust
-pub fn load_graph(path: &Path) -> Result<Graph, GraphError>
-pub fn save_graph(graph: &Graph) -> Result<(), GraphError>
-pub fn flush_dirty_nodes(graph: &mut Graph) -> Result<(), GraphError>
-
-// Node-level operations
-pub fn load_node_from_file(path: &Path) -> Result<Node, GraphError>
-pub fn save_node_to_file(node: &Node, path: &Path) -> Result<(), GraphError>
-```
-
-**Load Process:**
-1. Read graph metadata from `.flow/graph.toml`
-2. Load Loro container from `.flow/loro.bin`
-3. Scan `journal/` and `nodes/` directories
-4. Parse markdown files into Node structs
-5. Build indexes
-6. Reconstruct reference graph
-7. Validate referential integrity
-
-**Save Process:**
-1. Flush dirty nodes to markdown files
-2. Serialize Loro container to `.flow/loro.bin`
-3. Update graph metadata
-4. Optionally serialize indexes for faster loading
-
-### Dirty Tracking
-
-```rust
-struct DirtySet {
-    nodes: HashSet<NodeId>,
-}
-
-pub fn mark_dirty(graph: &mut Graph, node_id: NodeId)
-pub fn flush_dirty(graph: &mut Graph) -> Result<(), GraphError>
-```
-
-Only modified nodes written to disk. Tracking prevents unnecessary I/O.
-
----
-
-## CRDT Integration (Loro)
-
-### Loro Document Structure
-
-```rust
-struct LoroGraph {
-    doc: LoroDoc,
-    // Map: node_id -> LoroMap
-    nodes: LoroMap,
+struct OutlineItem {
+    content: String,
+    children: Vec<OutlineItem>,
 }
 ```
 
-Each node stored as LoroMap with fields:
-- `content` → LoroText (for collaborative editing)
-- `tags` → LoroList
-- `properties` → LoroMap
-- `children` → LoroList
-- `metadata` → LoroMap
+**Parser**: Use markdown parsing library (pulldown-cmark) to extract list items and their nesting depth.
 
-### Operation Capture
-
-Every mutation creates Loro operations:
+### Import Implementation
 
 ```rust
-pub fn apply_loro_operations(graph: &mut Graph, ops: &[LoroOp]) -> Result<(), GraphError>
-pub fn export_loro_operations(graph: &Graph) -> Vec<LoroOp>
-```
-
-**Sync workflow:**
-1. Local changes create Loro operations
-2. Operations batched and exported
-3. Sent to sync server
-4. Remote operations imported
-5. Loro handles conflict resolution
-6. Graph state updated from Loro doc
-
----
-
-## Validation System
-
-### Schema Validation
-
-```rust
-pub fn validate_node(graph: &Graph, node_id: NodeId) -> Vec<ValidationError>
-pub fn validate_graph(graph: &Graph) -> Vec<ValidationError>
-
-pub struct ValidationError {
-    node_id: NodeId,
-    error_type: ValidationErrorType,
-    message: String,
+impl Graph {
+    fn import_markdown_file(&mut self, file_path: &Path) -> Result<()> {
+        // Pause markdown writer to prevent circular updates
+        self.pause_subscriber(SubscriberType::MarkdownWriter);
+        
+        let content = fs::read_to_string(file_path)?;
+        let relative_path = file_path.strip_prefix(&self.path)?;
+        
+        // Parse outline structure
+        let outline = parse_markdown_outline(&content)?;
+        
+        // Import into Loro recursively
+        for item in outline {
+            self.import_outline_item_recursive(item, None, relative_path)?;
+        }
+        
+        // Resume markdown writer
+        self.resume_subscriber(SubscriberType::MarkdownWriter);
+        
+        Ok(())
+    }
+    
+    fn import_outline_item_recursive(
+        &mut self,
+        item: OutlineItem,
+        parent_id: Option<NodeId>,
+        file_path: &Path,
+    ) -> Result<NodeId> {
+        let node_id = NodeId::new();
+        let nodes = self.document.get_map("nodes");
+        let node = nodes.insert_container(node_id.to_string(), loro::ContainerType::Map)?;
+        
+        // Set content
+        let content_text = node.insert_container("content", loro::ContainerType::Text)?;
+        content_text.insert(0, &item.content)?;
+        
+        // Set parent
+        node.insert("parent", parent_id.map(|id| id.to_string()).unwrap_or_default())?;
+        
+        // Create children list
+        node.insert_container("children", loro::ContainerType::List)?;
+        
+        // Timestamps
+        let now = chrono::Utc::now().timestamp();
+        node.insert("created_at", now)?;
+        node.insert("modified_at", now)?;
+        
+        // Add to parent's children or file roots
+        if let Some(parent) = parent_id {
+            let parent_node = nodes.get_map(parent.to_string());
+            let children = parent_node.get_list("children");
+            children.push(node_id.to_string())?;
+        } else {
+            let files = self.document.get_map("files");
+            let file = files.get_or_create_map(file_path.to_str().unwrap());
+            let roots = file.get_or_create_list("roots");
+            roots.push(node_id.to_string())?;
+        }
+        
+        // Recursively import children
+        for child in item.children {
+            self.import_outline_item_recursive(child, Some(node_id.clone()), file_path)?;
+        }
+        
+        Ok(node_id)
+    }
 }
+```
 
-pub enum ValidationErrorType {
-    MissingRequiredProperty,
-    InvalidPropertyType,
-    InvalidPropertyValue,
-    InvalidReference,
-    SchemaViolation,
-    OrphanedNode,
+### Conflict Detection
+
+**Problem**: Markdown file modified outside Flow while Loro contains different state.
+
+**Detection Strategy**:
+
+Compare file modification time with last Loro save time:
+```rust
+fn needs_import(&self, file_path: &Path) -> Result<bool> {
+    let file_mtime = fs::metadata(file_path)?.modified()?;
+    let loro_save_time = self.get_last_save_time()?;
+    Ok(file_mtime > loro_save_time)
 }
 ```
 
-**Validation Checks:**
-1. Tag schema compliance
-2. Required properties present
-3. Property types match schema
-4. Property values within constraints
-5. References point to existing nodes
-6. Hierarchical integrity (no cycles)
+**Resolution Policies**:
 
-### Referential Integrity
+1. **Loro-first (default)**: Ignore external changes. Loro is authoritative.
+2. **Last-write-wins**: Import overwrites Loro state with file contents.
+3. **Manual resolution**: Flag conflict, require explicit user choice.
 
+**Recommendation**: Loro-first for synced graphs. Explicit import command for intentional overwrites.
+
+### File Watching (Optional)
+
+**Purpose**: Automatically detect and import externally modified files.
+
+**Implementation**:
 ```rust
-pub fn check_referential_integrity(graph: &Graph) -> Vec<ValidationError>
-```
+use notify::{Watcher, RecursiveMode, Event};
 
-**Checks:**
-- All parent IDs point to existing nodes
-- All child IDs point to existing nodes
-- All references point to existing nodes
-- No orphaned nodes (except root nodes)
-- No cycles in hierarchical parent-child relationships
-
----
-
-## Transaction Management
-
-```rust
-pub struct Transaction<'a> {
-    graph: &'a mut Graph,
-    operations: Vec<Operation>,
-    rollback_state: Option<GraphSnapshot>,
+impl Graph {
+    pub fn watch_files(&mut self) -> Result<()> {
+        let mut watcher = notify::recommended_watcher(move |res: Result<Event, _>| {
+            if let Ok(event) = res {
+                if event.kind.is_modify() {
+                    for path in event.paths {
+                        if self.needs_import(&path)? {
+                            self.import_markdown_file(&path)?;
+                        }
+                    }
+                }
+            }
+        })?;
+        
+        watcher.watch(&self.path, RecursiveMode::Recursive)?;
+        Ok(())
+    }
 }
+```
 
-impl Transaction<'_> {
-    pub fn begin(graph: &mut Graph) -> Self
-    pub fn commit(self) -> Result<(), GraphError>
-    pub fn rollback(self) -> Result<(), GraphError>
+**Tradeoffs**:
+- **Pro**: Seamless external editor support (Vim, Emacs, VS Code)
+- **Con**: Complexity, potential performance impact
+- **Con**: Conflict potential in synced scenarios
+
+**Recommendation**: Optional feature, disabled by default for synced graphs.
+
+### CLI Commands
+
+```bash
+# Bootstrap import during initialization
+flow init --import /path/to/existing/notes
+
+# Import specific file (overwrites Loro state for that file)
+flow import path/to/file.md
+
+# Scan and import all new/modified files
+flow import --scan
+
+# Watch for file changes (daemon mode)
+flow watch
+
+# Check what would be imported (dry run)
+flow import --scan --dry-run
+```
+
+### Import Ordering
+
+Files imported in lexicographic order to ensure deterministic results and consistent NodeID assignment across multiple imports of same content.
+
+### Idempotency
+
+Importing same file twice should produce same Loro state (same node structure). Achieved by:
+1. Clearing existing nodes for file before import
+2. Regenerating NodeIDs deterministically (optional: use content hash for stable IDs)
+
+**Alternative**: Track file → node mapping in SQLite to preserve NodeIDs across reimports.
+
+## Query Interface
+
+### Content Search
+```rust
+graph.search("machine learning") -> Vec<NodeId>
+```
+Uses Tantivy with BM25 ranking.
+
+### Graph Traversal
+```rust
+graph.get_backlinks(node_id) -> Vec<NodeId>
+graph.get_children(node_id) -> Vec<NodeId>
+```
+Uses SQLite for O(1) lookups.
+
+### Object Model
+```rust
+graph.get_nodes_with_tag("project") -> Vec<NodeId>
+graph.query_by_property("status", "active") -> Vec<NodeId>
+```
+Uses SQLite indexes.
+
+## Inline Syntax Parsing
+
+### References: `[[target]]`
+- Regex: `\[\[([^\]]+)\]\]`
+- Extracted during index updates
+- Resolved by searching node content in SQLite
+- Stored in `references` or `unresolved_references`
+
+### Tags: `#tag-name`
+- Regex: `#([a-zA-Z0-9_-]+)`
+- Extracted during index updates
+- Stored in `tags` table
+- Powers `get_nodes_with_tag()` queries
+
+### Properties: `key::value`
+- Regex: `(\w+)::([^\s]+)`
+- Extracted during index updates
+- Type inferred: number, reference (if `[[...]]`), else string
+- Stored in `properties` table
+- Powers object model queries
+
+## History Management
+
+### Loro Compaction
+
+**Problem**: Unbounded operation history grows file size.
+
+**Solution**: Configurable retention window.
+
+```rust
+impl Graph {
+    pub fn compact(&mut self, retain_days: u32) -> Result<()> {
+        let snapshot = self.document.export(ExportMode::Snapshot)?;
+        self.document = LoroDoc::new();
+        self.document.import(&snapshot)?;
+        self.save()
+    }
 }
-
-pub fn with_transaction<F, R>(graph: &mut Graph, f: F) -> Result<R, GraphError>
-where
-    F: FnOnce(&mut Transaction) -> Result<R, GraphError>
 ```
 
-**Usage:**
-```rust
-with_transaction(graph, |tx| {
-    let node_id = create_node(tx.graph, content, None, vec![], HashMap::new())?;
-    apply_tag(tx.graph, node_id, "project")?;
-    set_property(tx.graph, node_id, "status", PropertyValue::String("active".into()))?;
-    Ok(node_id)
-})?;
-```
+**Trigger Options**:
+- Operation count threshold
+- File size threshold
+- Time-based (user-configured retention window)
+- Manual command
 
-All operations in transaction block are atomic. Rollback on any error.
+## Technology Justification
 
----
+### Tantivy over SQLite FTS5
+- **Performance**: 2x faster than Lucene, significantly faster than SQLite FTS5
+- **Features**: Advanced ranking (BM25), phrase queries, fuzzy search
+- **Scalability**: Designed for large document collections
+- **Rust-native**: Zero FFI overhead, type-safe API
 
-## Date References
+### SQLite for Structured Data
+- **Maturity**: Battle-tested, well-understood failure modes
+- **ACID**: Guaranteed consistency for graph relations
+- **Query power**: Complex joins, aggregations for object model
+- **Portability**: Standard format, inspectable with CLI tools
 
-Special node type for journal entries:
+### Nanoid over UUID
+- **Brevity**: 12 chars vs 36 (66% reduction)
+- **Readability**: Avoids visual confusion (no 0/O, 1/l)
+- **CLI ergonomics**: Typeable, memorable for short sessions
+- **Security**: Cryptographically secure random generation
 
-```rust
-pub fn get_journal_node(graph: &Graph, date: NaiveDate) -> Option<NodeId>
-pub fn create_journal_node(graph: &mut Graph, date: NaiveDate) -> Result<NodeId, GraphError>
-
-pub fn parse_date_reference(expr: &str) -> Result<NaiveDate, ParseError>
-```
-
-**Date expressions:**
-- `@today`, `@yesterday`, `@tomorrow`
-- `@2024-11-24`
-- `@-3d`, `@+1w`, `@-2m`
-
-Journal nodes automatically created in `journal/` directory with filename `YYYY-MM-DD.md`.
-
----
-
-## Error Handling
-
-```rust
-pub enum GraphError {
-    NodeNotFound(NodeId),
-    InvalidReference(NodeId, NodeId),
-    ValidationError(Vec<ValidationError>),
-    CyclicHierarchy(NodeId),
-    IoError(std::io::Error),
-    LoroError(loro::Error),
-    ParseError(String),
-    SchemaViolation(String),
-}
-
-pub type Result<T> = std::result::Result<T, GraphError>;
-```
-
-All public API functions return `Result<T, GraphError>` for explicit error handling.
-
----
-
-## Public API Surface
-
-Core module exposes these categories of operations:
-
-### Graph Management
-- `load_graph`, `save_graph`, `flush_dirty_nodes`
-
-### Node Operations
-- `create_node`, `get_node`, `update_node_content`, `delete_node`
-- `move_node`, `get_children`, `get_parent`, `get_ancestors`, `get_descendants`
-
-### Tag Operations
-- `apply_tag`, `remove_tag`, `get_nodes_with_tag`, `list_all_tags`
-- `get_tag_template`, `apply_tag_with_template`, `has_template`
-
-### Property Operations
-- `set_property`, `get_property`, `delete_property`, `get_nodes_by_property`
-
-### Reference Operations
-- `create_reference`, `delete_reference`
-- `get_outgoing_references`, `get_incoming_references`, `get_all_references`
-- `find_path`, `find_related_nodes`
-
-### Query Operations
-- `parse_sql_query`, `execute_sql_query`, `search_content`
-
-### Validation
-- `validate_node`, `validate_graph`, `check_referential_integrity`
-
-### Date Operations
-- `get_journal_node`, `create_journal_node`, `parse_date_reference`
-
-### Transaction Operations
-- `Transaction::begin`, `Transaction::commit`, `Transaction::rollback`
-- `with_transaction`
-
----
-
-## Performance Considerations
-
-### Lazy Loading
-
-Large graphs require lazy node loading:
-
-```rust
-pub struct LazyGraph {
-    metadata: GraphMetadata,
-    loaded_nodes: HashMap<NodeId, Node>,
-    node_paths: HashMap<NodeId, PathBuf>,
-}
-
-pub fn load_node_on_demand(graph: &mut LazyGraph, node_id: NodeId) -> Result<&Node, GraphError>
-```
-
-Only load nodes into memory when accessed. Cache hot nodes.
-
-### Index Persistence
-
-Large graphs benefit from persisted indexes:
-
-```rust
-pub fn serialize_indexes(graph: &Graph, path: &Path) -> Result<(), GraphError>
-pub fn deserialize_indexes(path: &Path) -> Result<IndexSystem, GraphError>
-```
-
-Rebuilding indexes on every load expensive for large graphs. Serialize to disk.
-
-### Incremental Updates
-
-Loro CRDT provides incremental sync. Avoid full graph serialization:
-
-```rust
-pub fn export_updates_since(graph: &Graph, version: u64) -> Vec<LoroOp>
-pub fn import_updates(graph: &mut Graph, ops: Vec<LoroOp>) -> Result<(), GraphError>
-```
-
----
-
-## Testing Requirements
-
-Core module requires comprehensive test coverage:
-
-1. **Unit Tests**: Every public function
-2. **Property Tests**: Invariants (no cycles, referential integrity)
-3. **Integration Tests**: Full workflows (create -> update -> query -> delete)
-4. **Benchmark Tests**: Performance regression prevention
-5. **CRDT Tests**: Merge scenarios, conflict resolution
-6. **Persistence Tests**: Save/load round-trips, corruption recovery
-
----
+### Loro over Operational Transform
+- **CRDT guarantees**: No central authority needed for sync
+- **Conflict-free**: Automatic merge without user intervention
+- **Mature**: Production-ready library with active development
+- **Rust-native**: Performance and type safety
 
 ## Future Extensions
 
-### Multi-Graph Operations
+### Plugin Hooks
+Third subscriber slot available for custom logic:
+- Export integrations (Notion, Obsidian)
+- AI embeddings generation
+- Custom indexing strategies
+- Analytics and metrics
 
-Support operations across multiple graphs:
-
-```rust
-pub fn merge_graphs(graph1: &Graph, graph2: &Graph) -> Result<Graph, GraphError>
-pub fn copy_node_between_graphs(
-    source: &Graph,
-    target: &mut Graph,
-    node_id: NodeId,
-) -> Result<NodeId, GraphError>
+### Meta-Model System
+Tag definitions as nodes (future phase):
+```markdown
+- #tag-definition Status
+  - property::name "Status"
+  - property::values ["active", "completed", "archived"]
+  - property::color "#ff0000"
 ```
 
-### Advanced Query Features
+Enables Tana-like self-hosted type system.
 
-- Regex support in content queries
-- Fuzzy date ranges
-- Geographic/spatial queries (if lat/lon properties)
-- Graph pattern matching (subgraph isomorphism)
+## Performance Targets
 
-### Optimization
+- Node creation: <1ms
+- Full-text search: <50ms for 100k nodes
+- Backlink queries: <5ms
+- Graph load: <100ms for 10k nodes
+- Save operation: <500ms for 100 dirty files
 
-- Bloom filters for negative lookups
-- Parallel index updates
-- Memory-mapped file access for large graphs
-- Incremental full-text indexing
+## Crate Dependencies
+
+```toml
+[dependencies]
+loro = "1.0"
+tantivy = "0.22"
+rusqlite = { version = "0.32", features = ["bundled"] }
+nanoid = "0.4"
+regex = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+chrono = "0.4"
+miette = "7.0"
+walkdir = "2.4"
+pulldown-cmark = "0.11"  # Markdown parsing
+notify = "6.1"  # File watching (optional feature)
+```
+
+## File Structure
+
+```
+<graph-path>/
+├─ .flow/
+│  ├─ graph.toml           # Metadata
+│  ├─ graph.loro           # CRDT state
+│  ├─ graph.db             # SQLite index
+│  └─ tantivy_index/       # Tantivy segments
+├─ journal/
+│  └─ YYYY-MM-DD.md
+└─ *.md                    # User markdown files
+```
+
+## Implementation Phases
+
+1. **Core infrastructure**: Loro integration, node CRUD, save/load
+2. **Index layer**: Tantivy + SQLite setup, subscriber system
+3. **Markdown import/export**: Parse markdown, bootstrap import, file generation
+4. **Inline parsing**: Reference, tag, property extraction
+5. **Query interface**: Search, backlinks, object model queries
+6. **History management**: Compaction, retention policies
+7. **File watching** (optional): Auto-import external changes
+
+## Open Questions
+
+1. **Multi-file references**: How to handle nodes split across files?
+2. **Schema migration**: Strategy for index schema changes?
+3. **Large files**: Performance threshold for splitting daily notes?
+4. **Sync conflicts**: UI for presenting concurrent edits?
 
 ---
 
-## Summary
-
-Core module provides complete graph management with:
-- Node CRUD with hierarchical relationships
-- Bidirectional reference tracking
-- Tag and property system
-- Powerful query engine with multiple indexes
-- Markdown-based persistence with CRDT integration
-- Schema validation and referential integrity
-- Transaction support for atomic operations
-
-All frontends interact exclusively through this API, ensuring consistent behavior across CLI, TUI, desktop GUI, and web interfaces.
+This specification defines a robust architecture that separates concerns cleanly: Loro for authoritative state, indexes for queries, markdown for human readability. The subscriber pattern enables future extensibility while maintaining architectural clarity.
