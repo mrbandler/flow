@@ -2,13 +2,13 @@
 
 # Flow
 
-**An outliner with object-based note-taking that stays out of your way**
+**Thoughts captured. Focus unbroken.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![License: AGPL-3](https://img.shields.io/badge/License-AGPL--3-blue.svg)](./LICENSE)
 [![Built with Rust](https://img.shields.io/badge/Built%20with-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Project Status: Early Development](https://img.shields.io/badge/Status-Early%20Development-yellow.svg)]()
 
-*Stay in Flow. Capture thoughts without context switching.*
+*An outliner with object-based note-taking that stays out of your way*
 
 </div>
 
@@ -18,22 +18,23 @@
 
 Flow is in **early development**. The core architecture is being built, and features are being actively developed. While the vision is clear, not all features listed below are implemented yet. Star and watch this repository to follow the progress!
 
-## Why Flow?
+---
 
-Most note-taking applications get in your way. You're deep in your work, you have an idea, and suddenly you need to:
+You're deep in your work. An idea surfaces.
 
-1. Switch to another application
-2. Navigate to the right notebook or page
-3. Click around to create a new note
-4. Finally write down your thought (if you still remember it)
+Most note apps make you stop what you're doing: open the app, find the right place, format it properly. By the time you're done, your train of thought is derailed.
 
-**Flow is different.** As a developer, you already have a terminal open. With Flow, you stay in flow:
+**Flow is different.**
 
 ```bash
-flow capture "Remember to refactor the auth module #task"
+flow add "Research CRDT sync options for offline-first" --tag idea
 
-# That's it. You're done. Back to work.
+# Done. Back to work.
 ```
+
+Your thought is captured. Your momentum continues. Find it later when you need it.
+
+---
 
 ## Philosophy
 
