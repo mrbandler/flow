@@ -2,9 +2,9 @@
 
 ## Overview
 
-Flow implements a self-hosting meta-model where the type system itself exists as nodes within the graph. This allows users to define custom tags (object types) and properties with schemas, validation rules, and constraints—all using the same primitives available for regular content.
+Flow implements a self-hosting meta-model where the type system itself exists as nodes within the space. This allows users to define custom tags (object types) and properties with schemas, validation rules, and constraints—all using the same primitives available for regular content.
 
-**Core Principle:** Everything is a node. Tags and properties are defined using special built-in tags that create definitions stored as nodes in the graph.
+**Core Principle:** Everything is a node. Tags and properties are defined using special built-in tags that create definitions stored as nodes in the space.
 
 ---
 
@@ -37,13 +37,13 @@ Any child nodes of the tag definition are treated as a template. When the tag is
 **Example:**
 
 ```bash
-flow create "Project Tag #tag-definition 
-  name::project 
-  description::\"Represents a project with status tracking\" 
-  color::#3b82f6 
-  icon::📦 
-  schema::[status,priority,owner,due-date,description] 
-  required-properties::[status]"
+flow add "Project Tag #tag-definition 
+  name:: project 
+  description:: \"Represents a project with status tracking\" 
+  color:: #3b82f6 
+  icon:: 📦 
+  schema:: [status,priority,owner,due-date,description] 
+  required-properties:: [status]"
 
 # Add template structure as children
 flow append <project-tag-def-id> "## Goals"
@@ -54,42 +54,35 @@ flow append <project-tag-def-id> "## Notes"
 
 **Resulting Tag Definition Node:**
 ```markdown
----
-id: tag-def-001
-tags: [tag-definition]
----
-
-# Project Tag
-
-name:: project
-description:: Represents a project with status tracking
-color:: #3b82f6
-icon:: 📦
-schema:: [status, priority, owner, due-date, description]
-required-properties:: [status]
-
-- ## Goals
-- ## Milestones
-- ## Resources
-- ## Notes
+- Project Tag <!-- n:abc123 -->
+  #tag-definition
+  name:: project
+  description:: Represents a project with status tracking
+  color:: #3b82f6
+  icon:: 📦
+  schema:: [status, priority, owner, due-date, description]
+  required-properties:: [status]
+  - ## Goals
+  - ## Milestones
+  - ## Resources
+  - ## Notes
 ```
 
 **When Applied:**
 
 ```bash
-flow create "New Product Launch #project status::planning"
+flow add "New Product Launch #project status:: planning"
 ```
 
-The system automatically creates:
+The system automatically creates (template children auto-applied):
 ```markdown
-# New Product Launch
-
-status:: planning
-
-- ## Goals
-- ## Milestones
-- ## Resources
-- ## Notes
+- New Product Launch <!-- n:def456 -->
+  #project
+  status:: planning
+  - ## Goals
+  - ## Milestones
+  - ## Resources
+  - ## Notes
 ```
 
 ### `#property-definition`
@@ -117,30 +110,25 @@ Defines a property with type, constraints, and validation rules.
 **Example:**
 
 ```bash
-flow create "Status Property #property-definition 
-  name::status 
-  type::enum 
-  values::[planning,active,blocked,done,archived] 
-  required::false 
-  default::planning 
-  description::\"Current state of a task or project\""
+flow add "Status Property #property-definition 
+  name:: status 
+  type:: enum 
+  values:: [planning,active,blocked,done,archived] 
+  required:: false 
+  default:: planning 
+  description:: \"Current state of a task or project\""
 ```
 
 **Resulting Node:**
 ```markdown
----
-id: prop-def-001
-tags: [property-definition]
----
-
-# Status Property
-
-name:: status
-type:: enum
-values:: [planning, active, blocked, done, archived]
-required:: false
-default:: planning
-description:: Current state of a task or project
+- Status Property <!-- n:prop01 -->
+  #property-definition
+  name:: status
+  type:: enum
+  values:: [planning, active, blocked, done, archived]
+  required:: false
+  default:: planning
+  description:: Current state of a task or project
 ```
 
 ### `#view-definition`
@@ -163,12 +151,12 @@ Defines a database view for querying and displaying nodes using SQL syntax.
 **Example:**
 
 ```bash
-flow create "Active Projects View #view-definition 
-  name::active-projects 
-  query::\"SELECT * FROM nodes WHERE 'project' IN tags AND status = 'active'\" 
-  display-properties::[name,owner,due-date,priority] 
-  sort-by::priority 
-  sort-order::desc"
+flow add "Active Projects View #view-definition 
+  name:: active-projects 
+  query:: \"SELECT * FROM nodes WHERE 'project' IN tags AND status = 'active'\" 
+  display-properties:: [name,owner,due-date,priority] 
+  sort-by:: priority 
+  sort-order:: desc"
 ```
 
 ---
@@ -250,7 +238,7 @@ Automatic type coercion during property setting:
 
 ## Schema Validation
 
-When a node has a tag with a defined schema, the system validates:
+Validation (type checking) is **on by default**. When a node has a tag with a defined schema, the system validates:
 
 ### 1. Required Properties
 
@@ -293,92 +281,92 @@ fn validate_reference_properties(node: &Node, graph: &Graph) -> Vec<ValidationEr
 **Step 1: Define Task Tag**
 
 ```bash
-flow create "Task Tag #tag-definition 
-  name::task 
-  icon::✓ 
-  color::#10b981 
-  schema::[status,priority,assignee,due-date,estimate] 
-  required-properties::[status]"
+flow add "Task Tag #tag-definition 
+  name:: task 
+  icon:: ✓ 
+  color:: #10b981 
+  schema:: [status,priority,assignee,due-date,estimate] 
+  required-properties:: [status]"
 ```
 
 **Step 2: Define Properties**
 
 ```bash
 # Status property
-flow create "Task Status #property-definition 
-  name::status 
-  type::enum 
-  values::[todo,in-progress,blocked,done] 
-  default::todo"
+flow add "Task Status #property-definition 
+  name:: status 
+  type:: enum 
+  values:: [todo,in-progress,blocked,done] 
+  default:: todo"
 
 # Priority property
-flow create "Priority #property-definition 
-  name::priority 
-  type::number 
-  min::1 
-  max::5 
-  default::3"
+flow add "Priority #property-definition 
+  name:: priority 
+  type:: number 
+  min:: 1 
+  max:: 5 
+  default:: 3"
 
 # Assignee property
-flow create "Assignee #property-definition 
-  name::assignee 
-  type::reference 
-  reference-tag::person"
+flow add "Assignee #property-definition 
+  name:: assignee 
+  type:: reference 
+  reference-tag:: person"
 
 # Due date property
-flow create "Due Date #property-definition 
-  name::due-date 
-  type::date"
+flow add "Due Date #property-definition 
+  name:: due-date 
+  type:: date"
 
 # Estimate property
-flow create "Estimate #property-definition 
-  name::estimate 
-  type::number 
-  description::\"Estimated hours\""
+flow add "Estimate #property-definition 
+  name:: estimate 
+  type:: number 
+  description:: \"Estimated hours\""
 ```
 
 **Step 3: Define Person Tag**
 
 ```bash
-flow create "Person Tag #tag-definition 
-  name::person 
-  icon::👤 
-  color::#6366f1 
-  schema::[email,role,team]"
+flow add "Person Tag #tag-definition 
+  name:: person 
+  icon:: 👤 
+  color:: #6366f1 
+  schema:: [email,role,team]"
 ```
 
 **Step 4: Create Views**
 
 ```bash
 # My tasks view
-flow create "My Tasks #view-definition 
-  name::my-tasks 
-  query::\"SELECT * FROM nodes WHERE 'task' IN tags AND assignee = '@me' AND status != 'done'\" 
-  display-properties::[status,priority,due-date] 
-  sort-by::priority 
-  sort-order::desc"
+flow add "My Tasks #view-definition 
+  name:: my-tasks 
+  query:: \"SELECT * FROM nodes WHERE 'task' IN tags AND assignee = '@me' AND status != 'done'\" 
+  display-properties:: [status,priority,due-date] 
+  sort-by:: priority 
+  sort-order:: desc"
 
 # Overdue tasks view
-flow create "Overdue #view-definition 
-  name::overdue-tasks 
-  query::\"SELECT * FROM nodes WHERE 'task' IN tags AND due_date < CURRENT_DATE AND status != 'done'\" 
-  display-properties::[assignee,due-date,priority] 
-  sort-by::due-date"
+flow add "Overdue #view-definition 
+  name:: overdue-tasks 
+  query:: \"SELECT * FROM nodes WHERE 'task' IN tags AND due_date < CURRENT_DATE AND status != 'done'\" 
+  display-properties:: [assignee,due-date,priority] 
+  sort-by:: due-date"
 ```
 
 **Step 5: Use the System**
 
 ```bash
 # Create a person
-flow create "Alice Smith #person email::alice@example.com role::engineer team::backend"
+flow add "Alice Smith #person email:: alice@example.com role:: engineer team:: backend"
 
 # Create a task
-flow create "Implement query engine #task 
-  status::in-progress 
-  priority::5 
-  assignee::@<alice-node-id> 
-  due-date::2024-12-01 
-  estimate::8"
+flow add "Implement query engine #task 
+  status:: in-progress 
+  priority:: 5 
+  assignee:: ((n:alice1)) 
+  due-date:: 2024-12-01 
+  estimate:: 8"
 
 # The #task tag automatically adds its template structure as children
 ```
@@ -389,11 +377,11 @@ flow create "Implement query engine #task
 
 ```bash
 # Create the tag definition
-flow create "Article Tag #tag-definition 
-  name::article 
-  icon::📄 
-  schema::[category,published,author,reviewed] 
-  required-properties::[category,author]"
+flow add "Article Tag #tag-definition 
+  name:: article 
+  icon:: 📄 
+  schema:: [category,published,author,reviewed] 
+  required-properties:: [category,author]"
 
 # Add template structure
 flow append <article-tag-def-id> "## Overview"
@@ -404,30 +392,30 @@ flow append <article-tag-def-id> "## References"
 **Define Category Property**
 
 ```bash
-flow create "Category #property-definition 
-  name::category 
-  type::enum 
-  values::[tutorial,reference,guide,concept,api-docs]"
+flow add "Category #property-definition 
+  name:: category 
+  type:: enum 
+  values:: [tutorial,reference,guide,concept,api-docs]"
 ```
 
 **Create View**
 
 ```bash
-flow create "Published Articles #view-definition 
-  name::published-articles 
-  query::\"SELECT * FROM nodes WHERE 'article' IN tags AND published = true\" 
-  display-properties::[category,author,reviewed] 
-  sort-by::category"
+flow add "Published Articles #view-definition 
+  name:: published-articles 
+  query:: \"SELECT * FROM nodes WHERE 'article' IN tags AND published = true\" 
+  display-properties:: [category,author,reviewed] 
+  sort-by:: category"
 ```
 
 **Use the System**
 
 ```bash
 # Create article with template auto-applied
-flow create "Getting Started with Flow #article 
-  category::tutorial 
-  author::michael 
-  published::true"
+flow add "Getting Started with Flow #article 
+  category:: tutorial 
+  author:: michael 
+  published:: true"
 
 # Template children automatically added:
 # - ## Overview
@@ -461,155 +449,63 @@ flow query "SELECT * FROM nodes WHERE 'project' IN tags"
 
 ### Tag Definition Management
 
-```rust
-pub fn create_tag_definition(
-    graph: &mut Graph,
-    name: &str,
-    schema: Vec<String>,
-    metadata: TagMetadata,
-) -> Result<NodeId, GraphError>
+The core module provides operations for managing tag definitions:
 
-pub fn get_tag_definition(
-    graph: &Graph,
-    tag_name: &str,
-) -> Option<NodeId>
-
-pub fn list_tag_definitions(graph: &Graph) -> Vec<NodeId>
-
-pub fn get_tag_schema(
-    graph: &Graph,
-    tag_name: &str,
-) -> Option<Vec<String>>
-```
+- **Create tag definition** - Create a new tag with schema and optional template children
+- **Get tag definition** - Look up definition node by tag name
+- **List tag definitions** - Get all defined tags
+- **Get tag schema** - Get list of expected properties for a tag
 
 ### Property Definition Management
 
-```rust
-pub fn create_property_definition(
-    graph: &mut Graph,
-    name: &str,
-    property_type: PropertyType,
-    constraints: PropertyConstraints,
-) -> Result<NodeId, GraphError>
+Operations for managing property definitions:
 
-pub fn get_property_definition(
-    graph: &Graph,
-    property_name: &str,
-) -> Option<NodeId>
-
-pub fn list_property_definitions(graph: &Graph) -> Vec<NodeId>
-
-pub fn validate_property_value(
-    graph: &Graph,
-    property_name: &str,
-    value: &PropertyValue,
-) -> Result<(), ValidationError>
-```
+- **Create property definition** - Define a new property with type and constraints
+- **Get property definition** - Look up definition by property name
+- **List property definitions** - Get all defined properties
+- **Validate property value** - Check if a value is valid for a property
 
 ### Schema Validation
 
-```rust
-pub fn validate_node_schema(
-    graph: &Graph,
-    node_id: NodeId,
-) -> Vec<ValidationError>
+Validation operations (enabled by default):
 
-pub fn get_validation_errors_for_tag(
-    graph: &Graph,
-    node_id: NodeId,
-    tag_name: &str,
-) -> Vec<ValidationError>
-
-pub fn enforce_schema(
-    graph: &mut Graph,
-    node_id: NodeId,
-) -> Result<(), GraphError>
-```
+- **Validate node schema** - Check node against all its tags' schemas
+- **Get validation errors for tag** - Get errors specific to one tag's schema
+- **Enforce schema** - Apply defaults and fix minor issues automatically
 
 ### View Management
 
-```rust
-pub fn create_view(
-    graph: &mut Graph,
-    name: &str,
-    query: &str,
-    config: ViewConfig,
-) -> Result<NodeId, GraphError>
+Operations for saved query views:
 
-pub fn execute_view(
-    graph: &Graph,
-    view_id: NodeId,
-) -> Result<Vec<NodeId>, GraphError>
-
-pub fn list_views(graph: &Graph) -> Vec<NodeId>
-```
+- **Create view** - Create a saved query with display config
+- **Execute view** - Run the view's query and get results
+- **List views** - Get all defined views
 
 ### Template Management
 
-```rust
-pub fn get_tag_template(
-    graph: &Graph,
-    tag_name: &str,
-) -> Option<Vec<NodeId>>
+Template operations:
 
-pub fn apply_tag_with_template(
-    graph: &mut Graph,
-    node_id: NodeId,
-    tag_name: &str,
-) -> Result<(), GraphError>
-
-pub fn has_template(
-    graph: &Graph,
-    tag_name: &str,
-) -> bool
-```
-
-When applying a tag with `apply_tag_with_template`, the system:
-1. Looks up the tag definition node
-2. Gets all child nodes (the template)
-3. Deep copies the template structure
-4. Adds copies as children of the target node
+- **Get tag template** - Get template children for a tag definition
+- **Has template** - Check if a tag has a template
+- **Apply tag** - When applying a tag with a template, the template children are automatically deep-copied as children of the target node (cannot be skipped)
 
 ---
 
 ## Bootstrap Process
 
-When initializing a new graph, create the bootstrap definitions:
+When initializing a new space, the system creates bootstrap definitions:
 
-```rust
-pub fn bootstrap_meta_model(graph: &mut Graph) -> Result<(), GraphError> {
-    // Create #tag-definition itself
-    let tag_def_id = create_tag_definition(
-        graph,
-        "tag-definition",
-        vec!["name", "description", "color", "icon", "schema", "required-properties"],
-        TagMetadata::default(),
-    )?;
-    
-    // Tag it with itself (meta!)
-    apply_tag(graph, tag_def_id, "tag-definition")?;
-    
-    // Create #property-definition
-    let prop_def_id = create_tag_definition(
-        graph,
-        "property-definition",
-        vec!["name", "type", "description", "required", "default", "values", "min", "max", "pattern"],
-        TagMetadata::default(),
-    )?;
-    apply_tag(graph, prop_def_id, "tag-definition")?;
-    
-    // Create #view-definition
-    let view_def_id = create_tag_definition(
-        graph,
-        "view-definition",
-        vec!["name", "query", "display-properties", "sort-by", "sort-order", "group-by"],
-        TagMetadata::default(),
-    )?;
-    apply_tag(graph, view_def_id, "tag-definition")?;
-    
-    Ok(())
-}
-```
+1. **Create `#tag-definition`** - The meta-tag for defining other tags
+   - Schema: name, description, color, icon, schema, required-properties
+   - Tagged with itself (meta!)
+
+2. **Create `#property-definition`** - For defining typed properties
+   - Schema: name, type, description, required, default, values, min, max, pattern
+   - Tagged with `#tag-definition`
+
+3. **Create `#view-definition`** - For defining saved queries
+   - Schema: name, query, display-properties, sort-by, sort-order, group-by
+   - Tagged with `#tag-definition`
 
 This creates a self-describing system where the meta-model is defined using itself.
 
@@ -624,11 +520,11 @@ These could be added for common use cases:
 Define custom relationship types between nodes:
 
 ```bash
-flow create "Depends On Relation #relation-definition 
-  name::depends-on 
-  source-tag::task 
-  target-tag::task 
-  inverse::blocked-by"
+flow add "Depends On Relation #relation-definition 
+  name:: depends-on 
+  source-tag:: task 
+  target-tag:: task 
+  inverse:: blocked-by"
 ```
 
 ### `#automation-definition`
@@ -636,10 +532,10 @@ flow create "Depends On Relation #relation-definition
 Define automated behaviors:
 
 ```bash
-flow create "Auto-Archive Completed #automation-definition 
-  name::archive-completed 
-  trigger::\"prop:status=done\" 
-  action::\"set prop:archived=true\""
+flow add "Auto-Archive Completed #automation-definition 
+  name:: archive-completed 
+  trigger:: \"prop:status=done\" 
+  action:: \"set prop:archived=true\""
 ```
 
 ### `#webhook-definition`
@@ -647,11 +543,11 @@ flow create "Auto-Archive Completed #automation-definition
 Define external integrations:
 
 ```bash
-flow create "Slack Notification #webhook-definition 
-  name::slack-notify-tasks 
-  url::\"https://hooks.slack.com/...\" 
-  trigger::\"tag:task AND prop:priority=5\" 
-  template::\"{content} is high priority\""
+flow add "Slack Notification #webhook-definition 
+  name:: slack-notify-tasks 
+  url:: \"https://hooks.slack.com/...\" 
+  trigger:: \"tag:task AND prop:priority=5\" 
+  template:: \"{content} is high priority\""
 ```
 
 ---
@@ -661,46 +557,26 @@ flow create "Slack Notification #webhook-definition
 Tags can inherit schemas from other tags:
 
 ```bash
-flow create "Task Tag #tag-definition 
-  name::task 
-  schema::[status,priority]"
+flow add "Task Tag #tag-definition 
+  name:: task 
+  schema:: [status,priority]"
 
-flow create "Bug Tag #tag-definition 
-  name::bug 
-  inherits::task 
-  schema::[severity,reproducible] 
-  required-properties::[severity]"
+flow add "Bug Tag #tag-definition 
+  name:: bug 
+  inherits:: task 
+  schema:: [severity,reproducible] 
+  required-properties:: [severity]"
 ```
 
 A node with `#bug` automatically gets the schema from `#task` plus its own properties.
 
 ---
 
-## Validation Modes
+## Validation Behavior
 
-### Strict Mode
+Type checking is **enabled by default**. When a node violates its schema (missing required property, wrong type, etc.), the operation will fail with a validation error.
 
-All nodes must pass validation. Invalid nodes prevented from being saved.
-
-```bash
-flow config set validation_mode strict
-```
-
-### Warn Mode
-
-Validation errors shown as warnings but don't block operations.
-
-```bash
-flow config set validation_mode warn
-```
-
-### Permissive Mode
-
-No validation enforcement (default for backward compatibility).
-
-```bash
-flow config set validation_mode permissive
-```
+Future versions may add configurable validation modes (warn-only, permissive) for specific use cases, but the default is strict validation to ensure data integrity.
 
 ---
 
@@ -747,7 +623,7 @@ flow edit <tag-def-node-id>
 schema:: [status, priority, owner, due-date, labels]  # Added 'labels'
 ```
 
-Changes propagate immediately. Existing nodes don't need migration (permissive mode). Strict mode catches schema violations.
+Changes propagate immediately. Existing nodes that no longer comply with updated schemas will show validation errors and need to be updated.
 
 ---
 
