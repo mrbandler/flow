@@ -9,6 +9,7 @@ use serde::Serialize;
 use std::path::PathBuf;
 
 use crate::common::{path_to_display_string, Command, GlobalArgs};
+use crate::error::CliError;
 
 /// Output structure for the init command.
 #[derive(Debug, Clone, Serialize)]
@@ -55,14 +56,14 @@ impl Command for InitCommand {
     fn interactive(&mut self) -> Result<()> {
         // Validate path is provided when not in interactive mode
         if self.args.path.is_none() {
-            self.args.global.print_verbose("Entering interactive mode");
+            self.args.global.info("Entering interactive mode");
 
             // Ask for path
             let path_input = Text::new("Directory path:")
                 .with_default(".")
                 .with_help_message("Path where the graph will be initialized")
                 .prompt()
-                .map_err(|_| miette::miette!("Input cancelled"))?;
+                .map_err(CliError::from)?;
 
             self.args.path = Some(PathBuf::from(path_input));
 
@@ -71,7 +72,7 @@ impl Command for InitCommand {
                 let name_input = Text::new("Graph name:")
                     .with_help_message("Leave empty to use directory name")
                     .prompt()
-                    .map_err(|_| miette::miette!("Input cancelled"))?;
+                    .map_err(CliError::from)?;
 
                 if !name_input.trim().is_empty() {
                     self.args.name = Some(name_input);
@@ -87,19 +88,19 @@ impl Command for InitCommand {
         let path = self
             .args
             .path
-            .ok_or_else(|| miette::miette!("Path argument is required"))?;
+            .ok_or_else(|| CliError::missing_argument("path"))?;
         let name = self.args.name;
 
         let mut config = Config::load()?;
 
         // Check if path already exists and has a .flow directory
         if Graph::exists(path.as_path()) {
-            miette::bail!("Graph already exists at {}", path.display());
+            return Err(CliError::graph_already_exists(path).into());
         }
 
         self.args
             .global
-            .print_verbose(&format!("Initializing graph at {}", path.display()));
+            .step(&format!("Initializing graph at {}", path.display()));
 
         let graph = Graph::init(&path, name.as_ref())?;
 
@@ -107,13 +108,11 @@ impl Command for InitCommand {
         if self.args.template.is_some() {
             self.args
                 .global
-                .print("Warning: Template support not yet implemented");
+                .warning("Template support not yet implemented");
         }
 
+        self.args.global.step("Registering graph in configuration");
         config.add_graph(&graph)?;
-        self.args
-            .global
-            .print_verbose("Graph registered in configuration");
 
         let canonical_path = path.canonicalize().into_diagnostic()?;
         let display_path = path_to_display_string(&canonical_path);
@@ -125,9 +124,9 @@ impl Command for InitCommand {
     }
 
     fn format_output(output: &Self::Output, global: &GlobalArgs) {
-        global.print(&format!(
-            "Initialized graph {} at {}",
-            output.name, output.path
-        ));
+        global.success("Graph initialized successfully");
+        global.blank();
+        global.kv("Name", &output.name);
+        global.kv("Path", &output.path);
     }
 }

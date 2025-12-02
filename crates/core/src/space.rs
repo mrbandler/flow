@@ -6,46 +6,46 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const FLOW_DIR: &str = ".flow";
-const METADATA_FILE: &str = "graph.toml";
-const DOCUMENT_FILE: &str = "graph.loro";
-const JOURNAL_DIR: &str = "journal"; // TODO: Implement ability to customize for the user
+const METADATA_FILE: &str = "space.toml";
+const DOCUMENT_FILE: &str = "space.loro";
+const JOURNAL_DIR: &str = "journal";
 
-/// Graph metadata.
+/// Space metadata.
 ///
 /// # Fields
 ///
-/// - `name` (`String`) - Name of the graph.
-/// - `version` (`String`) - Version the graph was created with.
+/// - `name` (`String`) - Name of the space.
+/// - `version` (`String`) - Version the space was created with.
 #[derive(serde::Serialize, serde::Deserialize)]
 struct Metadata {
     name: String,
     version: String,
 }
 
-/// Node graph.
+/// Space.
 ///
 /// # Fields
 ///
-/// - `path` (`PathBuf`) - Path of the graph.
-/// - `metadata` (`Metadata`) - Metadata of the graph.
-pub struct Graph {
+/// - `path` (`PathBuf`) - Path of the space.
+/// - `metadata` (`Metadata`) - Metadata of the space.
+pub struct Space {
     path: PathBuf,
     metadata: Metadata,
     document: LoroDoc,
     dirty: HashSet<String>,
 }
 
-impl Graph {
-    /// Initializes a new graph given a path and a optional name.
+impl Space {
+    /// Initializes a new space given a path and a optional name.
     ///
     /// # Arguments
     ///
-    /// - `path` (`&Path`) - Path to create the graph in.
-    /// - `name` (`Option<&String>`) - Optional name of the graph (if none is provided it will fallback to the path's basename).
+    /// - `path` (`&Path`) - Path to create the space in.
+    /// - `name` (`Option<&String>`) - Optional name of the space (if none is provided it will fallback to the path's basename).
     ///
     /// # Returns
     ///
-    /// - `Result<Self>` - Initialized graph.
+    /// - `Result<Self>` - Initialized space.
     ///
     /// # Errors
     ///
@@ -58,14 +58,14 @@ impl Graph {
         let journal_dir = path.join(JOURNAL_DIR);
         fs::create_dir_all(&journal_dir).into_diagnostic()?;
 
-        let graph_name = name.map(|s| s.to_string()).unwrap_or_else(|| {
+        let space_name = name.map(|s| s.to_string()).unwrap_or_else(|| {
             path.file_name()
                 .and_then(|n| n.to_str())
-                .unwrap_or("flow-graph") // TODO: Find a better default name or generate one
+                .unwrap_or("flow-space") // TODO: Find a better default name or generate one
                 .to_string()
         });
         let metadata = Metadata {
-            name: graph_name,
+            name: space_name,
             version: env!("CARGO_PKG_VERSION").to_string(),
         };
 
@@ -78,7 +78,7 @@ impl Graph {
         let snapshot = doc.export(ExportMode::Snapshot).into_diagnostic()?;
         fs::write(doc_path, snapshot).into_diagnostic()?;
 
-        Ok(Graph {
+        Ok(Space {
             path: path.to_path_buf(),
             metadata: metadata,
             document: doc,
@@ -86,15 +86,15 @@ impl Graph {
         })
     }
 
-    /// Loads a graph given a path.
+    /// Loads a space given a path.
     ///
     /// # Arguments
     ///
-    /// - `path` (`&Path`) - Path of the graph to load.
+    /// - `path` (`&Path`) - Path of the space to load.
     ///
     /// # Returns
     ///
-    /// - `Result<Self>` - Loaded graph.
+    /// - `Result<Self>` - Loaded space.
     ///
     /// # Errors
     ///
@@ -113,9 +113,9 @@ impl Graph {
             doc.import(&doc_content).into_diagnostic()?;
         }
 
-        // TODO: Load and index all markdown files in the graph directory.
+        // TODO: Load and index all markdown files in the space directory.
 
-        Ok(Graph {
+        Ok(Space {
             path: path.to_path_buf(),
             metadata: metadata,
             document: doc,
@@ -123,15 +123,15 @@ impl Graph {
         })
     }
 
-    /// Checks if a graph exists at the given path.
+    /// Checks if a space exists at the given path.
     ///
     /// # Arguments
     ///
-    /// - `path` (`&Path`) - Path to check for the existence of a graph.
+    /// - `path` (`&Path`) - Path to check for the existence of a space.
     ///
     /// # Returns
     ///
-    /// `bool` - True if the graph exists, false otherwise.
+    /// `bool` - True if the space exists, false otherwise.
     pub fn exists(path: &Path) -> bool {
         path.join(".flow").exists()
     }
@@ -140,7 +140,7 @@ impl Graph {
     ///
     /// # Arguments
     ///
-    /// - `&mut self` (`Graph`) - Graph to add the node to todays page to.
+    /// - `&mut self` (`Space`) - Space to add the node to todays page to.
     /// - `content` (`&str`) - Content to add.
     ///
     /// # Errors
@@ -171,11 +171,11 @@ impl Graph {
         Ok(())
     }
 
-    /// Saves the graph to disk.
+    /// Saves the space to disk.
     ///
     /// # Arguments
     ///
-    /// - `&self` (`Graph`) - Graph to save.
+    /// - `&self` (`Space`) - Space to save.
     ///
     /// # Errors
     ///
@@ -204,20 +204,20 @@ impl Graph {
         Ok(())
     }
 
-    /// Returns the path of the graph.
+    /// Returns the path of the space.
     ///
     /// # Returns
     ///
-    /// - `&Path` - Reference to the graph's path.
+    /// - `&Path` - Reference to the space's path.
     pub fn path(&self) -> &Path {
         &self.path
     }
 
-    /// Returns the name of the graph.
+    /// Returns the name of the space.
     ///
     /// # Returns
     ///
-    /// - `&str` - Reference to the graph's name.
+    /// - `&str` - Reference to the space's name.
     pub fn name(&self) -> &str {
         &self.metadata.name
     }

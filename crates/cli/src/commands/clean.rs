@@ -61,11 +61,11 @@ impl Command for CleanCommand {
     }
 
     fn run(self) -> Result<Self::Output> {
-        self.args.global.print_verbose("Loading configuration");
+        self.args.global.step("Loading configuration");
         let mut config = Config::load()?;
 
         let graph_count = config.graph_count();
-        self.args.global.print_verbose(&format!(
+        self.args.global.info(&format!(
             "Checking {} registered graph{}",
             graph_count,
             if graph_count == 1 { "" } else { "s" }
@@ -81,18 +81,19 @@ impl Command for CleanCommand {
 
             self.args
                 .global
-                .print_verbose(&format!("Checking: {} ({})", name, display_path));
+                .debug("Checking", &format!("{} ({})", name, display_path));
 
             // Check if directory exists
             if !path.exists() {
-                self.args.global.print_verbose(&format!(
-                    "  {} - directory not found",
-                    if self.args.dry_run {
-                        "Would remove"
-                    } else {
-                        "Removing"
-                    }
-                ));
+                if self.args.dry_run {
+                    self.args
+                        .global
+                        .warning(&format!("Would remove {} - directory not found", name));
+                } else {
+                    self.args
+                        .global
+                        .step(&format!("Removing {} - directory not found", name));
+                }
 
                 removed.push(RemovedGraph {
                     name: name.clone(),
@@ -101,21 +102,22 @@ impl Command for CleanCommand {
                 });
 
                 if !self.args.dry_run {
-                    config.remove_graph(&name)?;
+                    config.unregister_space(&name)?;
                 }
                 continue;
             }
 
             // Check if it's a valid Flow graph
             if !Graph::exists(path) {
-                self.args.global.print_verbose(&format!(
-                    "  {} - not a valid graph",
-                    if self.args.dry_run {
-                        "Would remove"
-                    } else {
-                        "Removing"
-                    }
-                ));
+                if self.args.dry_run {
+                    self.args
+                        .global
+                        .warning(&format!("Would remove {} - not a valid graph", name));
+                } else {
+                    self.args
+                        .global
+                        .step(&format!("Removing {} - not a valid graph", name));
+                }
 
                 removed.push(RemovedGraph {
                     name: name.clone(),
@@ -124,7 +126,7 @@ impl Command for CleanCommand {
                 });
 
                 if !self.args.dry_run {
-                    config.remove_graph(&name)?;
+                    config.unregister_space(&name)?;
                 }
                 continue;
             }
@@ -132,7 +134,7 @@ impl Command for CleanCommand {
             // Graph is valid, keep it
             self.args
                 .global
-                .print_verbose(&format!("  Keeping - valid graph"));
+                .debug("Keeping", &format!("{} - valid graph", name));
 
             kept.push(KeptGraph {
                 name: name.clone(),
@@ -149,37 +151,39 @@ impl Command for CleanCommand {
     }
 
     fn format_output(output: &Self::Output, global: &GlobalArgs) {
-        global.print(&format!(
-            "Checking {} registered graph{}...",
-            output.checked,
-            if output.checked == 1 { "" } else { "s" }
-        ));
+        global.heading("Clean Results");
+        global.blank();
 
-        for r in &output.removed {
-            let action = if output.dry_run {
-                "Would remove"
+        if !output.removed.is_empty() {
+            if output.dry_run {
+                global.warning("Graphs that would be removed:");
             } else {
-                "Removed"
-            };
-            global.print(&format!(
-                "{}: {} ({}) - {}",
-                action, r.name, r.path, r.reason
-            ));
+                global.info("Removed graphs:");
+            }
+            for r in &output.removed {
+                global.kv(&r.name, &format!("{} ({})", r.path, r.reason));
+            }
+            global.blank();
         }
 
-        for k in &output.kept {
-            global.print(&format!("Kept: {} ({})", k.name, k.path));
+        if !output.kept.is_empty() && global.verbose {
+            global.info("Kept graphs:");
+            for k in &output.kept {
+                global.kv(&k.name, &k.path);
+            }
+            global.blank();
         }
 
-        println!();
         if output.dry_run {
-            global.print(&format!(
+            global.warning(&format!(
                 "Dry run: {} graph{} would be removed",
                 output.removed.len(),
                 if output.removed.len() == 1 { "" } else { "s" }
             ));
+        } else if output.removed.is_empty() {
+            global.success("No orphaned graphs found");
         } else {
-            global.print(&format!(
+            global.success(&format!(
                 "Cleaned {} orphaned graph{} from configuration",
                 output.removed.len(),
                 if output.removed.len() == 1 { "" } else { "s" }

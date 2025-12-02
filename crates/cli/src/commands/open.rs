@@ -9,6 +9,7 @@ use serde::Serialize;
 use std::path::PathBuf;
 
 use crate::common::{path_to_display_string, Command, GlobalArgs};
+use crate::error::CliError;
 
 /// Output structure for the open command.
 #[derive(Debug, Clone, Serialize)]
@@ -51,16 +52,20 @@ impl Command for OpenCommand {
     fn interactive(&mut self) -> Result<()> {
         // Only enter interactive mode if path_or_name is not provided
         if self.args.path_or_name.is_none() {
-            self.args.global.print_verbose("Entering interactive mode");
+            self.args.global.info("Entering interactive mode");
 
             let config = Config::load()?;
             let all_graphs = config.all_graphs();
 
             if all_graphs.is_empty() {
-                miette::bail!("No registered graphs found. Use 'flow init' to create a graph.");
+                return Err(CliError::Other {
+                    message: "No registered graphs found. Use 'flow init' to create a graph."
+                        .to_string(),
+                }
+                .into());
             }
 
-            let active_graph_name = config.get_active_graph_name();
+            let active_graph_name = config.get_active_space_name();
 
             // Create display options with name and path, marking the active graph
             let options: Vec<String> = all_graphs
@@ -78,7 +83,7 @@ impl Command for OpenCommand {
 
             let selection = Select::new("Select a graph to open:", options)
                 .prompt()
-                .map_err(|_| miette::miette!("Selection cancelled"))?;
+                .map_err(CliError::from)?;
 
             // Extract the graph name from the selection (before the path in parentheses)
             let name = selection
@@ -98,24 +103,24 @@ impl Command for OpenCommand {
         let path_or_name = self
             .args
             .path_or_name
-            .ok_or_else(|| miette::miette!("Graph name or path argument is required"))?;
+            .ok_or_else(|| CliError::missing_argument("path_or_name"))?;
 
         self.args
             .global
-            .print_verbose(&format!("Looking for graph: {}", path_or_name));
+            .step(&format!("Looking for graph: {}", path_or_name));
 
         let mut config = Config::load()?;
 
         // Try to interpret as a registered graph name or path first
-        let graph = if let Some(graph_config) = config.get_graph_config(&path_or_name) {
+        let graph = if let Some(graph_config) = config.get_space_config(&path_or_name) {
             // It's a registered graph (by name or path)
-            self.args.global.print_verbose(&format!(
-                "Found registered graph at {}",
-                graph_config.path.display()
-            ));
+            self.args.global.debug(
+                "Found registered graph at",
+                &graph_config.path.display().to_string(),
+            );
 
             let graph = Graph::load(&graph_config.path)?;
-            config.set_active_graph(&path_or_name)?;
+            config.set_active_space(&path_or_name)?;
             graph
         } else {
             // Try to interpret as a path
@@ -123,36 +128,31 @@ impl Command for OpenCommand {
 
             // Check if the path exists
             if !path.exists() {
-                miette::bail!(
-                    "Graph not found: '{}' is neither a registered graph name nor a valid path",
-                    path_or_name
-                );
+                return Err(CliError::graph_not_found(&path_or_name).into());
             }
 
             self.args
                 .global
-                .print_verbose(&format!("Loading graph from path: {}", path.display()));
+                .step(&format!("Loading graph from path: {}", path.display()));
 
             // Try to load the graph to validate it
-            let graph = Graph::load(&path).map_err(|e| {
-                miette::miette!("Failed to load graph at {}: {}", path.display(), e)
-            })?;
+            let graph = Graph::load(&path).map_err(|_| CliError::invalid_graph(path.clone()))?;
 
             // Canonicalize path before checking if registered (config stores canonical paths)
             let canonical_check_path = path.canonicalize().into_diagnostic()?;
-            let is_registered = config.is_graph_registered(&canonical_check_path);
+            let is_registered = config.is_space_registered(&canonical_check_path);
 
             if is_registered {
                 // If already registered, set it as active
                 self.args
                     .global
-                    .print_verbose("Graph already registered, setting as active");
-                config.set_active_graph(&canonical_check_path.to_string_lossy())?;
+                    .debug("Status", "Graph already registered, setting as active");
+                config.set_active_space(&canonical_check_path.to_string_lossy())?;
             } else {
                 // If not registered, add it to the config
                 self.args
                     .global
-                    .print_verbose("Registering new graph in configuration");
+                    .step("Registering new graph in configuration");
                 config.add_graph(&graph)?;
             }
 
@@ -169,7 +169,9 @@ impl Command for OpenCommand {
     }
 
     fn format_output(output: &Self::Output, global: &GlobalArgs) {
-        global.print(&format!("Opened graph: {}", output.name));
-        global.print(&format!("Path: {}", output.path));
+        global.success("Graph opened successfully");
+        global.blank();
+        global.kv("Name", &output.name);
+        global.kv("Path", &output.path);
     }
 }

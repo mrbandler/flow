@@ -12,3 +12,5 @@ uuid.workspace = true
 miette.workspace = true
 thiserror.workspace = true
 inquire = "0.7"
+console = "0.15"
+indicatif = "0.17"

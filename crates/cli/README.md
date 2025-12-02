@@ -4,9 +4,35 @@ This crate provides the command-line interface for Flow, a note-taking system fo
 
 > **📖 Documentation Hub**: This README serves as the primary documentation for the Flow CLI architecture, command structure, and development guidelines. All CLI-related documentation lives here.
 
+## ✨ Beautiful CLI Experience
+
+The Flow CLI provides a modern, user-friendly terminal experience with:
+
+- 🎨 **Colored output** - Different colors for different message types
+- ✨ **Icons and emojis** - Visual indicators with ASCII fallbacks
+- 🔍 **Debug mode** - Detailed logging with `--verbose`
+- 📋 **JSON mode** - Machine-readable output with `--json`
+- ❌ **Beautiful errors** - Rich diagnostics with helpful suggestions via `miette`
+- 💬 **Interactive prompts** - User-friendly input collection via `inquire`
+
+### Example Output
+
+```
+→ Initializing graph at D:\notes\my-graph
+→ Registering graph in configuration
+✅ Graph initialized successfully
+
+  Name: my-notes
+  Path: D:\notes\my-graph
+```
+
+**See [LOGGING.md](./LOGGING.md) for complete output documentation.**
+
 ## Table of Contents
 
+- [Beautiful CLI Experience](#-beautiful-cli-experience)
 - [Architecture](#architecture)
+- [Dependencies](#dependencies)
 - [Global Flags](#global-flags)
 - [GlobalArgs Helper Methods](#globalargs-helper-methods)
 - [Command Trait](#command-trait)
@@ -29,12 +55,25 @@ The CLI is organized into modules for better maintainability:
 src/
 ├── lib.rs              # Main CLI entry point and command dispatcher
 ├── common.rs           # Shared types (GlobalArgs, Command trait)
+├── error.rs            # Structured error types with diagnostics
 └── commands/           # Individual command modules
     ├── mod.rs          # Command module exports
     ├── init.rs         # flow init command
     ├── open.rs         # flow open command
-    └── add.rs          # flow add command
+    ├── add.rs          # flow add command
+    └── clean.rs        # flow clean command
 ```
+
+## Dependencies
+
+The CLI uses these key crates for an excellent user experience:
+
+- **`clap`** - Command-line argument parsing
+- **`miette`** - Beautiful error messages with diagnostics
+- **`inquire`** - Interactive prompts
+- **`console`** - Colored output with emoji support
+- **`indicatif`** - Progress bars and spinners (future use)
+- **`serde`** + **`serde_json`** - JSON output support
 
 ## Global Flags
 

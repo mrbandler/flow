@@ -11,6 +11,7 @@ flow-tui = { path = "../crates/tui", optional = true }
 flow-desktop = { path = "../crates/desktop", optional = true }
 clap.workspace = true
 miette.workspace = true
+console = "0.15"
 
 [features]
 default = []

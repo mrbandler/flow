@@ -68,7 +68,7 @@ Flow is built on principles that put you in control:
 Flow is an **outliner-first** note-taking app with **object-based note-taking**. Structure your thoughts as nested bullet points, the way developers naturally think. Each note is an object that can be referenced, linked, and queried across your knowledge base. Need to write longer prose? Flow supports that too, but the default is fast, hierarchical capture with rich interconnections.
 
 ```markdown
-- Project X #project
+- Project X #project <!-- n:3ads12 -->
   status:: 🟩 Active
   - Architecture decisions
     collapsed:: true

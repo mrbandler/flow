@@ -43,10 +43,10 @@ impl Command for AddCommand {
     fn run(self) -> Result<Self::Output> {
         self.args
             .global
-            .print_verbose(&format!("Adding content: {}", self.args.content));
+            .step(&format!("Adding content: {}", self.args.content));
 
         // Load graph using global.load_graph() which respects --graph flag
-        self.args.global.print_verbose("Loading graph");
+        self.args.global.step("Loading graph");
         let mut graph = self.args.global.load_graph()?;
 
         graph.add(&self.args.content)?;
@@ -58,6 +58,8 @@ impl Command for AddCommand {
     }
 
     fn format_output(output: &Self::Output, global: &GlobalArgs) {
-        global.print(&output.message);
+        global.success(&output.message);
+        global.blank();
+        global.kv("Content", &output.content);
     }
 }

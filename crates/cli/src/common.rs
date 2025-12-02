@@ -1,10 +1,22 @@
 //! Common types and utilities shared across all CLI commands.
 
 use clap::Args;
+use console::{style, Emoji, Term};
 use flow_core::config::Config;
 use flow_core::graph::Graph;
 use miette::{Context, IntoDiagnostic, Result};
 use std::path::{Path, PathBuf};
+
+use crate::error::CliError;
+
+// Emojis with fallbacks for terminals that don't support them
+static SPARKLE: Emoji<'_, '_> = Emoji("✨ ", "* ");
+static INFO: Emoji<'_, '_> = Emoji("ℹ️  ", "[i] ");
+static SUCCESS: Emoji<'_, '_> = Emoji("✅ ", "[+] ");
+static WARN: Emoji<'_, '_> = Emoji("⚠️  ", "[!] ");
+static ERROR: Emoji<'_, '_> = Emoji("❌ ", "[x] ");
+static DEBUG: Emoji<'_, '_> = Emoji("🔍 ", "[?] ");
+static ARROW: Emoji<'_, '_> = Emoji("→ ", "-> ");
 
 /// Converts a canonicalized path to a clean display string.
 ///
@@ -67,6 +79,16 @@ pub struct GlobalArgs {
 }
 
 impl GlobalArgs {
+    /// Get the terminal for output
+    fn term(&self) -> Term {
+        Term::stdout()
+    }
+
+    /// Get the terminal for error output
+    fn term_err(&self) -> Term {
+        Term::stderr()
+    }
+
     /// Load the target graph based on global flags and config.
     ///
     /// This method respects the `--graph` flag if provided (which can be either
@@ -88,7 +110,7 @@ impl GlobalArgs {
         let config = Config::load()?;
 
         if let Some(ref name_or_path) = self.graph {
-            if let Some(graph_config) = config.get_graph_config(name_or_path) {
+            if let Some(graph_config) = config.get_space_config(name_or_path) {
                 Graph::load(&graph_config.path).with_context(|| {
                     format!(
                         "Failed to load graph from '{}'",
@@ -97,13 +119,15 @@ impl GlobalArgs {
                 })
             } else {
                 let path = PathBuf::from(name_or_path);
-                Graph::load(&path)
-                    .with_context(|| format!("Failed to load graph from '{}'. Make sure the path exists and contains a valid Flow graph", path.display()))
+                if !path.exists() {
+                    return Err(CliError::graph_not_found(name_or_path).into());
+                }
+                Graph::load(&path).map_err(|_| CliError::invalid_graph(path.clone()).into())
             }
         } else {
-            let active = config.get_active_graph().ok_or_else(|| {
-                miette::miette!("No active graph set.\n\n  💡 Try:\n    • Open a graph: flow open <name|path>\n    • Initialize a new graph: flow init <path>\n    • Specify a graph: --graph <name|path>")
-            })?;
+            let active = config
+                .get_active_space()
+                .ok_or_else(|| CliError::NoActiveGraph)?;
             Graph::load(&active.path).with_context(|| {
                 format!(
                     "Failed to load active graph from '{}'",
@@ -123,11 +147,91 @@ impl GlobalArgs {
     /// * `message` - The message to print
     pub fn print(&self, message: &str) {
         if !self.quiet && !self.json {
-            println!("{}", message);
+            let _ = self.term().write_line(message);
         }
     }
 
-    /// Print a verbose message (only shown with --verbose flag).
+    /// Print a success message with green color and icon.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The success message to print
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// global.success("Graph initialized successfully");
+    /// // Outputs: ✅ Graph initialized successfully (in green)
+    /// ```
+    pub fn success(&self, message: &str) {
+        if !self.quiet && !self.json {
+            let _ =
+                self.term()
+                    .write_line(&format!("{}{}", SUCCESS, style(message).green().bold()));
+        }
+    }
+
+    /// Print an info message with cyan color and icon.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The info message to print
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// global.info("Loading graph configuration");
+    /// // Outputs: ℹ️  Loading graph configuration (in cyan)
+    /// ```
+    pub fn info(&self, message: &str) {
+        if !self.quiet && !self.json {
+            let _ = self
+                .term()
+                .write_line(&format!("{}{}", INFO, style(message).cyan()));
+        }
+    }
+
+    /// Print a warning message with yellow color and icon.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The warning message to print
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// global.warning("Template support not yet implemented");
+    /// // Outputs: ⚠️  Template support not yet implemented (in yellow)
+    /// ```
+    pub fn warning(&self, message: &str) {
+        if !self.quiet && !self.json {
+            let _ = self
+                .term()
+                .write_line(&format!("{}{}", WARN, style(message).yellow().bold()));
+        }
+    }
+
+    /// Print a step message with arrow icon (for showing progress).
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The step message to print
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// global.step("Registering graph in configuration");
+    /// // Outputs: → Registering graph in configuration (in dim white)
+    /// ```
+    pub fn step(&self, message: &str) {
+        if !self.quiet && !self.json {
+            let _ = self
+                .term()
+                .write_line(&format!("{}{}", ARROW, style(message).dim()));
+        }
+    }
+
+    /// Print a verbose/debug message (only shown with --verbose flag).
     ///
     /// When --json flag is set, this method does nothing as output
     /// should be handled via `print_json()`.
@@ -137,7 +241,33 @@ impl GlobalArgs {
     /// * `message` - The verbose message to print
     pub fn print_verbose(&self, message: &str) {
         if self.verbose && !self.quiet && !self.json {
-            println!("[verbose] {}", message);
+            let _ = self
+                .term()
+                .write_line(&format!("{}{}", DEBUG, style(message).dim()));
+        }
+    }
+
+    /// Print a debug message with details (only shown with --verbose flag).
+    ///
+    /// # Arguments
+    ///
+    /// * `label` - The label for the debug message
+    /// * `value` - The value to display
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// global.debug("Graph path", &path.display().to_string());
+    /// // Outputs: 🔍 Graph path: /path/to/graph (in dim, when --verbose)
+    /// ```
+    pub fn debug(&self, label: &str, value: &str) {
+        if self.verbose && !self.quiet && !self.json {
+            let _ = self.term().write_line(&format!(
+                "{}{}: {}",
+                DEBUG,
+                style(label).dim(),
+                style(value).dim().italic()
+            ));
         }
     }
 
@@ -151,7 +281,64 @@ impl GlobalArgs {
     /// * `message` - The error message to print
     pub fn print_error(&self, message: &str) {
         if !self.quiet && !self.json {
-            eprintln!("Error: {}", message);
+            let _ =
+                self.term_err()
+                    .write_line(&format!("{}{}", ERROR, style(message).red().bold()));
+        }
+    }
+
+    /// Print a styled heading/section.
+    ///
+    /// # Arguments
+    ///
+    /// * `heading` - The heading text
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// global.heading("Cleaning Graphs");
+    /// // Outputs: ✨ Cleaning Graphs (in bold)
+    /// ```
+    pub fn heading(&self, heading: &str) {
+        if !self.quiet && !self.json {
+            let _ = self.term().write_line(&format!(
+                "{}{}",
+                SPARKLE,
+                style(heading).bold().underlined()
+            ));
+        }
+    }
+
+    /// Print a key-value pair (useful for showing results).
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key/label
+    /// * `value` - The value to display
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// global.kv("Name", "my-notes");
+    /// global.kv("Path", "/path/to/notes");
+    /// // Outputs:
+    /// //   Name: my-notes
+    /// //   Path: /path/to/notes
+    /// ```
+    pub fn kv(&self, key: &str, value: &str) {
+        if !self.quiet && !self.json {
+            let _ = self.term().write_line(&format!(
+                "  {}: {}",
+                style(key).cyan().bold(),
+                style(value).white()
+            ));
+        }
+    }
+
+    /// Print a blank line (for spacing).
+    pub fn blank(&self) {
+        if !self.quiet && !self.json {
+            let _ = self.term().write_line("");
         }
     }
 
@@ -173,7 +360,8 @@ impl GlobalArgs {
     /// Returns an error if JSON serialization fails
     pub fn print_json<T: serde::Serialize>(&self, value: &T) -> Result<()> {
         if self.json {
-            println!("{}", serde_json::to_string_pretty(value).into_diagnostic()?);
+            let json = serde_json::to_string_pretty(value).into_diagnostic()?;
+            let _ = self.term().write_line(&json);
         }
         Ok(())
     }

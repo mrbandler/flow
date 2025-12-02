@@ -1,4 +1,5 @@
 use clap::{CommandFactory, Parser, Subcommand};
+use console::set_colors_enabled;
 use miette::{IntoDiagnostic, Result};
 
 #[derive(Parser)]
@@ -20,14 +21,19 @@ enum Commands {
 }
 
 fn main() -> Result<()> {
-    // Set up miette for beautiful error reporting
+    // Force enable colors for console crate
+    set_colors_enabled(true);
+
+    // Set up miette for beautiful error reporting with fancy rendering
     miette::set_hook(Box::new(|_| {
         Box::new(
             miette::MietteHandlerOpts::new()
                 .terminal_links(true)
                 .unicode(true)
+                .color(true)
                 .context_lines(3)
                 .tab_width(4)
+                .force_graphical(true)
                 .build(),
         )
     }))
