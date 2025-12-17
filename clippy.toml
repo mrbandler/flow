@@ -1,0 +1,33 @@
+# Clippy Configuration for Flow
+# https://doc.rust-lang.org/clippy/configuration.html
+
+# Cognitive complexity threshold - helps keep functions understandable
+cognitive-complexity-threshold = 25
+
+# Maximum lines in a function before warning
+too-many-lines-threshold = 100
+
+# Maximum number of arguments a function can have
+too-many-arguments-threshold = 7
+
+# Maximum number of struct fields
+max-struct-bools = 3
+
+# Allow these common names that would otherwise trigger warnings
+allowed-idents-below-min-chars = ["i", "j", "k", "n", "x", "y", "id", "db"]
+
+# MSRV - Minimum Supported Rust Version
+# This helps clippy suggest only features available in this version
+msrv = "1.75.0"
+
+# Documentation settings
+missing-docs-in-crate-items = true
+
+# Type complexity threshold
+type-complexity-threshold = 250
+
+# Disallowed methods (none for now, but can add problematic APIs)
+# disallowed-methods = []
+
+# Disallowed types (none for now)
+# disallowed-types = []

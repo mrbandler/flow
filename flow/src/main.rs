@@ -1,3 +1,32 @@
+//! Flow - Note taking for developers
+//!
+//! This is the main binary crate for Flow, providing a unified entry point
+//! for the command-line interface with optional TUI and Desktop features.
+//!
+//! # Binary Variants
+//!
+//! Flow can be built with different feature combinations:
+//!
+//! | Binary | Features | Description |
+//! |--------|----------|-------------|
+//! | `flow` | (default) | CLI only |
+//! | `flow-tui` | `tui` | CLI + Terminal UI |
+//! | `flow-desktop` | `desktop` | CLI + Desktop GUI |
+//! | `flow-full` | `all` | All features |
+//!
+//! # Usage
+//!
+//! ```bash
+//! # Initialize a new graph
+//! flow init ./my-notes
+//!
+//! # Add a note to today's journal
+//! flow add "Remember to review the PR"
+//!
+//! # Open the TUI (if compiled with tui feature)
+//! flow tui
+//! ```
+
 use clap::{CommandFactory, Parser, Subcommand};
 use console::set_colors_enabled;
 use miette::{IntoDiagnostic, Result};
@@ -57,7 +86,7 @@ fn run() -> Result<()> {
         None => {
             Flow::command().print_help().into_diagnostic()?;
             std::process::exit(1);
-        }
+        },
     }
 
     Ok(())

@@ -1,16 +1,31 @@
 [package]
 name = "flow-cli"
+description = "Command-line interface for Flow - note-taking for developers"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-flow-core = { path = "../core" }
+flow-core.workspace = true
 clap.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
 miette.workspace = true
 thiserror.workspace = true
+
+# CLI-specific dependencies
 inquire = "0.7"
 console = "0.15"
 indicatif = "0.17"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -1,20 +1,54 @@
 [package]
 name = "flow"
+description = "Note-taking for developers - thoughts captured, focus unbroken"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+default-run = "flow"
+
+[[bin]]
+name = "flow"
+path = "src/main.rs"
+
+[[bin]]
+name = "flow-tui"
+path = "src/bin/flow-tui.rs"
+required-features = ["tui"]
+
+[[bin]]
+name = "flow-desktop"
+path = "src/bin/flow-desktop.rs"
+required-features = ["desktop"]
+
+[[bin]]
+name = "flow-full"
+path = "src/bin/flow-full.rs"
+required-features = ["all"]
 
 [dependencies]
-flow-cli = { path = "../crates/cli" }
-flow-tui = { path = "../crates/tui", optional = true }
-flow-desktop = { path = "../crates/desktop", optional = true }
+flow-cli.workspace = true
+flow-tui = { workspace = true, optional = true }
+flow-desktop = { workspace = true, optional = true }
+
 clap.workspace = true
 miette.workspace = true
+
+# CLI output formatting
 console = "0.15"
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [features]
 default = []
 tui = ["dep:flow-tui"]
 desktop = ["dep:flow-desktop"]
 all = ["tui", "desktop"]
+
+[lints]
+workspace = true

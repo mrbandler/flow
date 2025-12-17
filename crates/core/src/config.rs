@@ -7,6 +7,12 @@
 //! - `~/.config/flow/flow.toml`
 //!
 //! You can override the base directory with the `XDG_CONFIG_HOME` environment variable.
+//!
+//! # Terminology
+//!
+//! Internally, Flow uses "space" to refer to a knowledge base directory. In user-facing
+//! contexts (CLI, documentation), we use "graph" as it better represents the interconnected
+//! nature of notes. This module provides both naming conventions through method aliases.
 
 use miette::{Context, IntoDiagnostic, Result};
 use serde::{Deserialize, Serialize};
@@ -27,9 +33,10 @@ pub struct Config {
     active_space: Option<String>,
 }
 
-/// Space configuration.
+/// Configuration for a registered space/graph.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpaceConfig {
+    /// Path to the space directory (canonicalized/absolute path)
     pub path: PathBuf,
 }
 
@@ -52,16 +59,14 @@ impl Config {
     ///
     /// If the config file doesn't exist, it will be created with default values.
     pub fn load() -> Result<Config> {
-        confy::change_config_strategy(confy::ConfigStrategy::App);
-        confy::load(APP_NAME, CONFIG_NAME)
+        confy::load(APP_NAME, Some(CONFIG_NAME))
             .into_diagnostic()
             .context("Failed to load Flow configuration")
     }
 
     /// Saves the Flow configuration to disk
     pub fn save(&self) -> Result<()> {
-        confy::change_config_strategy(confy::ConfigStrategy::App);
-        confy::store(APP_NAME, CONFIG_NAME, self)
+        confy::store(APP_NAME, Some(CONFIG_NAME), self)
             .into_diagnostic()
             .context("Failed to save Flow configuration")
     }
@@ -252,6 +257,58 @@ impl Config {
             .iter()
             .map(|(name, config)| (name.clone(), config.clone()))
             .collect()
+    }
+
+    // ========================================================================
+    // Graph aliases - these methods provide "graph" terminology for the CLI
+    // ========================================================================
+
+    /// Alias for [`register_space`](Self::register_space) using "graph" terminology.
+    ///
+    /// Registers a graph (space) to the configuration.
+    #[inline]
+    pub fn add_graph(&mut self, graph: &Space) -> Result<()> {
+        self.register_space(graph)
+    }
+
+    /// Alias for [`space_count`](Self::space_count) using "graph" terminology.
+    ///
+    /// Returns the number of registered graphs.
+    #[inline]
+    pub fn graph_count(&self) -> usize {
+        self.space_count()
+    }
+
+    /// Alias for [`all_spaces`](Self::all_spaces) using "graph" terminology.
+    ///
+    /// Returns a vector of all registered graphs (name, config).
+    #[inline]
+    pub fn all_graphs(&self) -> Vec<(String, SpaceConfig)> {
+        self.all_spaces()
+    }
+
+    /// Alias for [`get_space_config`](Self::get_space_config) using "graph" terminology.
+    ///
+    /// Gets a graph configuration by name or path.
+    #[inline]
+    pub fn get_graph_config(&self, name_or_path: &str) -> Option<&SpaceConfig> {
+        self.get_space_config(name_or_path)
+    }
+
+    /// Alias for [`is_space_registered`](Self::is_space_registered) using "graph" terminology.
+    ///
+    /// Checks if a graph with the given path is already registered.
+    #[inline]
+    pub fn is_graph_registered(&self, path: &std::path::Path) -> bool {
+        self.is_space_registered(path)
+    }
+
+    /// Alias for [`unregister_space`](Self::unregister_space) using "graph" terminology.
+    ///
+    /// Unregisters a graph from the configuration by name or path.
+    #[inline]
+    pub fn remove_graph(&mut self, name_or_path: &str) -> Result<()> {
+        self.unregister_space(name_or_path)
     }
 }
 

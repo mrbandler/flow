@@ -1,11 +1,24 @@
 [package]
 name = "flow-desktop"
+description = "Desktop GUI for Flow - note-taking for developers"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-iced = { version = "0.13.1", features = ["tokio"] }
-flow-app = { path = "../app" }
+flow-app.workspace = true
+iced.workspace = true
 serde.workspace = true
 uuid.workspace = true
 miette.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

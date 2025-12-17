@@ -10,29 +10,52 @@ const METADATA_FILE: &str = "space.toml";
 const DOCUMENT_FILE: &str = "space.loro";
 const JOURNAL_DIR: &str = "journal";
 
-/// Space metadata.
-///
-/// # Fields
-///
-/// - `name` (`String`) - Name of the space.
-/// - `version` (`String`) - Version the space was created with.
-#[derive(serde::Serialize, serde::Deserialize)]
+/// Space metadata stored in the `.flow/space.toml` file.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct Metadata {
+    /// Name of the space
     name: String,
+    /// Version of Flow that created this space
     version: String,
 }
 
-/// Space.
+/// A Flow space (also known as a graph) representing a knowledge base.
 ///
-/// # Fields
+/// A Space is a directory containing interconnected markdown notes organized
+/// as an outliner. It stores its configuration and CRDT document in a `.flow`
+/// subdirectory.
 ///
-/// - `path` (`PathBuf`) - Path of the space.
-/// - `metadata` (`Metadata`) - Metadata of the space.
+/// # Structure
+///
+/// ```text
+/// my-space/
+/// ├── .flow/
+/// │   ├── space.toml    # Metadata
+/// │   └── space.loro    # CRDT document
+/// ├── journal/
+/// │   └── 2024-01-15.md # Daily journal entries
+/// └── ... other markdown files
+/// ```
 pub struct Space {
+    /// Path to the space directory
     path: PathBuf,
+    /// Space metadata
     metadata: Metadata,
+    /// CRDT document for conflict-free sync
     document: LoroDoc,
+    /// Set of file IDs that have been modified and need saving
     dirty: HashSet<String>,
+}
+
+impl std::fmt::Debug for Space {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Space")
+            .field("path", &self.path)
+            .field("name", &self.metadata.name)
+            .field("version", &self.metadata.version)
+            .field("dirty_count", &self.dirty.len())
+            .finish_non_exhaustive()
+    }
 }
 
 impl Space {
@@ -80,7 +103,7 @@ impl Space {
 
         Ok(Space {
             path: path.to_path_buf(),
-            metadata: metadata,
+            metadata,
             document: doc,
             dirty: HashSet::new(),
         })
@@ -103,13 +126,13 @@ impl Space {
         let flow_dir = path.join(FLOW_DIR);
         let metadata_path = flow_dir.join(METADATA_FILE);
 
-        let metadata_json = std::fs::read_to_string(metadata_path).into_diagnostic()?;
+        let metadata_json = fs::read_to_string(metadata_path).into_diagnostic()?;
         let metadata: Metadata = toml::from_str(&metadata_json).into_diagnostic()?;
 
         let doc = LoroDoc::new();
         let doc_path = flow_dir.join(DOCUMENT_FILE);
         if doc_path.exists() {
-            let doc_content = std::fs::read(doc_path).into_diagnostic()?;
+            let doc_content = fs::read(doc_path).into_diagnostic()?;
             doc.import(&doc_content).into_diagnostic()?;
         }
 
@@ -117,7 +140,7 @@ impl Space {
 
         Ok(Space {
             path: path.to_path_buf(),
-            metadata: metadata,
+            metadata,
             document: doc,
             dirty: HashSet::new(),
         })

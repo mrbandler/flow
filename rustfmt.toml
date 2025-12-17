@@ -1,0 +1,60 @@
+# Rustfmt configuration for Flow
+# https://rust-lang.github.io/rustfmt/
+
+edition = "2021"
+
+# Formatting style
+max_width = 100
+tab_spaces = 4
+hard_tabs = false
+newline_style = "Auto"
+
+# Imports
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+reorder_modules = true
+
+# Comments
+wrap_comments = true
+format_code_in_doc_comments = true
+doc_comment_code_block_width = 80
+normalize_comments = true
+normalize_doc_attributes = true
+
+# Function signatures
+fn_params_layout = "Tall"
+fn_single_line = false
+
+# Match arms
+match_block_trailing_comma = true
+
+# Struct/enum formatting
+struct_lit_single_line = true
+enum_discrim_align_threshold = 20
+
+# Use field init shorthand where possible
+use_field_init_shorthand = true
+
+# Use try! shorthand where possible
+use_try_shorthand = true
+
+# Format string literals
+format_strings = false
+
+# Chains
+chain_width = 60
+
+# Macro formatting
+format_macro_matchers = true
+format_macro_bodies = true
+
+# Hex literals
+hex_literal_case = "Lower"
+
+# Force multiline closures/match arms with blocks
+force_multiline_blocks = false
+
+# Error handling
+error_on_line_overflow = false
+error_on_unformatted = false

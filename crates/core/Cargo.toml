@@ -1,14 +1,31 @@
 [package]
 name = "flow-core"
+description = "Core library for Flow - note-taking for developers"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-loro = "1.0"
-chrono = "0.4"
-confy = "2.0.0"
+loro.workspace = true
+chrono.workspace = true
 serde.workspace = true
 toml.workspace = true
 uuid.workspace = true
 miette.workspace = true
 thiserror.workspace = true
+
+# Platform-specific config storage
+confy = "0.6"
+nanoid = "0.4"
+blake3 = "1.8"
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
