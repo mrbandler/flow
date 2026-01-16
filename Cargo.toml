@@ -23,7 +23,7 @@ flow-tui = { path = "crates/flow-tui" }
 flow-gui = { path = "crates/flow-gui" }
 flow-server = { path = "crates/flow-server" }
 
-tokio = { version = "1.48", features = ["full"] }
+tokio = { version = "1.49", features = ["full"] }
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
