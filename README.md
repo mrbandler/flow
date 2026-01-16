@@ -4,10 +4,10 @@
 
 **Thoughts captured. Focus unbroken.**
 
+[![Built with Rust](https://img.shields.io/badge/Built%20with-Rust-orange.svg)](https://www.rust-lang.org/)
+[![License: AGPL-3](https://img.shields.io/badge/License-AGPL--3-blue.svg)](./LICENSE)
 [![CI](https://github.com/mrbandler/flow/actions/workflows/ci.yml/badge.svg)](https://github.com/mrbandler/flow/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/mrbandler/flow/branch/master/graph/badge.svg)](https://codecov.io/gh/mrbandler/flow)
-[![License: AGPL-3](https://img.shields.io/badge/License-AGPL--3-blue.svg)](./LICENSE)
-[![Built with Rust](https://img.shields.io/badge/Built%20with-Rust-orange.svg)](https://www.rust-lang.org/)
 
 *A developer-first, outliner-based note-taking tool that stays out of your way*
 
