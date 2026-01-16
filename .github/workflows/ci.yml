@@ -136,8 +136,10 @@ jobs:
             features: ""
           - name: flow-tui
             features: "tui"
-          - name: flow-desktop
-            features: "desktop"
+          - name: flow-gui
+            features: "gui"
+          - name: flow-server
+            features: "server"
           - name: flow-full
             features: "all"
 
@@ -163,11 +165,11 @@ jobs:
       - name: Build ${{ matrix.binary.name }}
         run: cargo build --release --package flow ${{ matrix.binary.features && format('--features {0}', matrix.binary.features) || '' }}
 
-  # Coverage (optional, runs only on main)
+  # Coverage (optional, runs only on main/master)
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
 
@@ -197,6 +199,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info
           fail_ci_if_error: false
 

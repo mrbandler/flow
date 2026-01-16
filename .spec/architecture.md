@@ -95,6 +95,7 @@ All interfaces communicate exclusively through the Core Module's public API, ens
 The Core Module is the heart of Flow. It provides all functionality for managing spaces, nodes, queries, and persistence.
 
 **Key Responsibilities:**
+
 - Node lifecycle management (create, read, update, delete)
 - Tag and property management
 - Reference tracking and backlink computation
@@ -105,6 +106,7 @@ The Core Module is the heart of Flow. It provides all functionality for managing
 - Validation and integrity checking
 
 **Public API Surface:**
+
 - Space management (open, close, create)
 - Node operations (add, edit, delete, move)
 - Tag operations (apply, remove, query)
@@ -118,12 +120,14 @@ The Core Module is the heart of Flow. It provides all functionality for managing
 The Sync Server is an **optional** component that enables multi-device synchronization.
 
 **Key Responsibilities:**
+
 - Accept CRDT operations from connected devices
 - Merge operations and broadcast to other devices
 - Track device registration and last-sync state
 - Optional authentication for shared spaces
 
 **Design Principles:**
+
 - Self-hostable (users control their data)
 - Stateless operation merging (CRDT handles conflicts)
 - No access to decrypted content (future: end-to-end encryption)
@@ -301,11 +305,13 @@ Server → Client:
 ## Security Model
 
 ### Local Security
+
 - All data stored locally by default
 - Standard filesystem permissions
 - No elevation required
 
 ### Sync Security (when enabled)
+
 - Self-hosted option for full control
 - Future: End-to-end encryption
 - No telemetry or analytics
@@ -315,16 +321,19 @@ Server → Client:
 ## Future Considerations
 
 ### Plugin System
+
 - Custom syntax extensions
 - Custom property types
 - Query language extensions
 
 ### Additional Imports
+
 - Obsidian vault import
 - Roam JSON import
 - Standard markdown export
 
 ### Advanced Sync
+
 - Selective sync by path/tag
 - Bandwidth optimization
 - Compression

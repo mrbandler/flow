@@ -9,38 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial project structure with workspace organization
-- Core library (`flow-core`) with configuration and space management
-- CLI crate (`flow-cli`) with commands:
-  - `init` - Initialize a new Flow graph
-  - `open` - Open an existing graph
-  - `add` - Add content to today's journal
-  - `clean` - Remove orphaned graphs from configuration
-- TUI crate (`flow-tui`) - Terminal user interface (placeholder)
-- Desktop crate (`flow-desktop`) - Desktop application using iced (placeholder)
-- App crate (`flow-app`) - Shared application logic
-- Feature flags for binary variants:
-  - Default: CLI only
-  - `tui`: CLI + Terminal UI
-  - `desktop`: CLI + Desktop application
-  - `all`: Full binary with all features
-- CI/CD pipeline with GitHub Actions:
-  - Formatting checks (rustfmt)
-  - Linting (clippy)
-  - Security audits (cargo-deny)
-  - Cross-platform testing (Linux, macOS, Windows)
-  - Documentation builds
-  - Code coverage reporting
-  - Automated releases with cross-compilation
-- Development tooling configuration:
-  - `rustfmt.toml` - Code formatting rules
-  - `clippy.toml` - Lint configuration
-  - `deny.toml` - Dependency auditing
-  - `rust-toolchain.toml` - Rust version pinning
-- Documentation:
-  - `README.md` - Project overview and philosophy
-  - `CONTRIBUTING.md` - Contribution guidelines
-  - `CHANGELOG.md` - Version history
+- Initial project structure with workspace layout
+- CLI foundation with clap argument parsing
+- TUI crate placeholder (feature-gated)
+- GUI crate placeholder (feature-gated)
+- Server crate placeholder (feature-gated)
+- Core library crate for shared functionality
+- App crate for shared application logic
+- Pre-commit hooks configuration
+- CI workflow with formatting, linting, testing, and security checks
+- Release workflow with multi-platform binary builds
+- GitHub issue templates (bug report, feature request, documentation)
+- Pull request template
+- Comprehensive contributing guidelines
 
 ### Changed
 
@@ -62,18 +43,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Nothing yet
 
-## [0.1.0] - Unreleased
+<!--
+## [0.1.0] - YYYY-MM-DD
 
-Initial release (planned).
+### Added
 
-### Planned Features
+- Feature description here
 
-- Basic CLI with capture and list commands
-- Local markdown storage with outliner support
-- Simple search functionality
-- Configuration management with XDG-style paths
+### Changed
 
----
+- Change description here
 
-[Unreleased]: https://github.com/mrbandler/flow/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/mrbandler/flow/releases/tag/v0.1.0
+### Fixed
+
+- Fix description here
+-->
+
+[Unreleased]: https://github.com/mrbandler/flow/compare/HEAD...HEAD
+<!-- [0.1.0]: https://github.com/mrbandler/flow/releases/tag/v0.1.0 -->

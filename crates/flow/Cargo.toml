@@ -1,0 +1,35 @@
+[package]
+name = "flow"
+description = "Flow - Note taking for developers"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "flow"
+path = "src/main.rs"
+
+[features]
+default = ["cli"]
+cli = []
+tui = ["dep:flow-tui"]
+gui = ["dep:flow-gui"]
+server = ["dep:flow-server"]
+all = ["cli", "tui", "gui", "server"]
+
+[dependencies]
+flow-cli = { workspace = true }
+flow-tui = { workspace = true, optional = true }
+flow-gui = { workspace = true, optional = true }
+flow-server = { workspace = true, optional = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+miette = { workspace = true }
+thiserror = { workspace = true }

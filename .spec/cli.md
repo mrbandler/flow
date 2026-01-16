@@ -123,10 +123,11 @@ completed:: true         → boolean
 When typing content in editor or interactive prompt, autocomplete activates:
 
 **Tag Autocomplete:**
+
 ```
 #proj<TAB>
   → #project
-  
+
 #mee<TAB>
   → #meeting
 ```
@@ -134,10 +135,11 @@ When typing content in editor or interactive prompt, autocomplete activates:
 Suggests existing tags in space, frequency-ranked.
 
 **Property Key Autocomplete:**
+
 ```
 status::<TAB>
   → Suggests: status::active, status::done, status::blocked, status::in-progress
-  
+
 owner::<TAB>
   → Suggests existing owners: owner::michael, owner::alice
 ```
@@ -145,15 +147,17 @@ owner::<TAB>
 Shows existing keys and common values for each key.
 
 **Property Value Autocomplete:**
+
 ```
 status::<TAB>
   → Shows: active, done, blocked, in-progress (context-aware for this key)
-  
+
 priority::<TAB>
   → Shows: 1, 2, 3, high, medium, low
 ```
 
 Autocomplete sources:
+
 - Existing tags in space
 - Property keys used in space  
 - Property values for each key (context-aware)
@@ -184,25 +188,30 @@ flow add "Task #work" --tags urgent,important
 Initialize a new Flow space.
 
 **Arguments:**
+
 - `<path>`: Directory path for new space
 
 **Flags:**
+
 - `--name <name>`: Space name (defaults to directory name)
 - `--template <template>`: Initialize with template structure
 
 **Behavior:**
+
 - Creates directory structure
 - Initializes Loro container
 - Creates journal directory
 - Writes space metadata
 
 **Output:**
+
 ```
 Initialized Flow space at /path/to/space
 Space ID: n:a3k9m2
 ```
 
 **Exit Codes:**
+
 - 0: Success
 - 1: Path already exists
 - 2: Permission denied
@@ -214,12 +223,15 @@ Space ID: n:a3k9m2
 Set the active space for subsequent commands.
 
 **Arguments:**
+
 - `<path|name>`: Path to existing space or registered space name
 
 **Flags:**
+
 - `--set-default`: Make this the default space
 
 **Behavior:**
+
 - Accepts either full/relative path or space name
 - If name provided, looks up in `~/.config/flow/spaces.toml`
 - If path provided, opens directly
@@ -228,6 +240,7 @@ Set the active space for subsequent commands.
 - Loads space metadata
 
 **Examples:**
+
 ```bash
 flow open /home/user/notes          # Absolute path
 flow open ~/work/flow-space         # Relative path
@@ -236,12 +249,14 @@ flow open work                      # Registered name
 ```
 
 **Output:**
+
 ```
 Opened space: SpaceName
 Path: /path/to/space
 ```
 
 **Exit Codes:**
+
 - 0: Success
 - 1: Space not found (name lookup failed or invalid path)
 - 2: Space corrupted
@@ -253,9 +268,11 @@ Path: /path/to/space
 List all registered spaces.
 
 **Flags:**
+
 - `--verbose, -v`: Show space statistics
 
 **Output (default):**
+
 ```
 * personal (/home/user/notes) [active]
   work (/home/user/work/flow)
@@ -263,6 +280,7 @@ List all registered spaces.
 ```
 
 **Output (--json):**
+
 ```json
 {
   "spaces": [
@@ -287,9 +305,11 @@ Remove orphaned spaces from configuration.
 Scans all registered spaces in the configuration and removes entries for spaces whose directories no longer exist or are no longer valid Flow spaces.
 
 **Flags:**
+
 - `--dry-run`: Show what would be removed without making changes
 
 **Behavior:**
+
 - Checks each registered space path
 - Verifies the space directory exists
 - Verifies the `.flow` directory exists within it
@@ -297,6 +317,7 @@ Scans all registered spaces in the configuration and removes entries for spaces 
 - If active space is removed, clears active space selection
 
 **Output (default):**
+
 ```
 Checking 3 registered spaces...
 Removed: work (/home/user/deleted-space) - directory not found
@@ -307,6 +328,7 @@ Cleaned 2 orphaned spaces from configuration
 ```
 
 **Output (--dry-run):**
+
 ```
 Checking 3 registered spaces...
 Would remove: work (/home/user/deleted-space) - directory not found
@@ -317,6 +339,7 @@ Dry run: 2 spaces would be removed
 ```
 
 **Output (--json):**
+
 ```json
 {
   "checked": 3,
@@ -342,6 +365,7 @@ Dry run: 2 spaces would be removed
 ```
 
 **Exit Codes:**
+
 - 0: Success (graphs removed or none needed removal)
 - 1: Configuration error
 
@@ -352,10 +376,12 @@ Dry run: 2 spaces would be removed
 Show current space health and statistics.
 
 **Flags:**
+
 - `--check-integrity`: Validate CRDT state
 - `--show-conflicts`: List unresolved conflicts
 
 **Output:**
+
 ```
 Space: SpaceName
 Path: /path/to/space
@@ -379,9 +405,11 @@ Uncommitted changes: 0
 Create node in today's journal.
 
 **Arguments:**
+
 - `[content]`: Node content with optional inline tags/properties (optional, opens $EDITOR if omitted)
 
 **Flags:**
+
 - `--date <date>`: Target specific date (default: @today)
 - `--parent <node-id>`: Add as child of specific node
 - `--tags <tags>`: Explicit tags (comma-separated, overrides inline)
@@ -389,6 +417,7 @@ Create node in today's journal.
 - `--editor, -e`: Force editor even with content
 
 **Behavior (Explicit):**
+
 ```bash
 flow add "Meeting notes #meeting status:: done"
 # Creates node with content "Meeting notes", tag [meeting], property {status: "done"}
@@ -404,12 +433,14 @@ flow add "Task" --tags urgent,important --property priority=high
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow add
 # Opens $EDITOR with autocomplete, creates node on save
 ```
 
 **Output:**
+
 ```
 Created node: t:a3f821 (or n:abc123 if promoted)
 In: journals/2024-11-24.md
@@ -424,13 +455,16 @@ Properties: {status: "done"}
 Edit node content.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--editor <editor>`: Override $EDITOR
 - `--in-place`: Edit raw markdown file directly
 
 **Behavior (Explicit):**
+
 ```bash
 flow edit n:abc123
 # Opens node in $EDITOR
@@ -443,24 +477,26 @@ flow edit .
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow edit
 # Enters search mode:
-# 
+#
 # Search: _
-# 
+#
 # [Fuzzy search results update as you type]
 # [Enter to select, ESC to cancel]
 ```
 
 **Interactive Search UI:**
+
 ```
 Search: project cli_
 
   1. Project: Flow CLI
      tags: [project] modified: 2h ago
      └─ Implementing core commands...
-     
+
   2. CLI Architecture Design  
      tags: [design] modified: 1d ago
      └─ Command structure and patterns...
@@ -469,6 +505,7 @@ Search: project cli_
 ```
 
 **Output:**
+
 ```
 Editing node: n:abc123
 ```
@@ -480,15 +517,18 @@ Editing node: n:abc123
 Display node content and metadata.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--with-children, -c`: Include child nodes
 - `--with-refs, -r`: Show references
 - `--raw`: Output raw markdown
 - `--format <format>`: Output format (markdown, plain, tree)
 
 **Behavior (Explicit):**
+
 ```bash
 flow show n:abc123
 flow show @today
@@ -496,12 +536,14 @@ flow show .
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow show
 # Enters search mode (same as edit)
 ```
 
 **Output (default):**
+
 ```
 Node: n:abc123
 Created: 2024-11-20 14:22:00
@@ -524,6 +566,7 @@ Children: 3 nodes
 ```
 
 **Output (--raw):**
+
 ```
 # Project: Flow CLI
 
@@ -537,14 +580,17 @@ Implementing the CLI interface for Flow.
 Delete node and optionally its children.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--recursive, -r`: Delete children too
 - `--force, -f`: Skip confirmation
 - `--keep-children`: Reparent children to deleted node's parent
 
 **Behavior (Explicit):**
+
 ```bash
 flow delete n:abc123
 # Prompts: "Delete node 'Project: Flow CLI'? [y/N]"
@@ -554,12 +600,14 @@ flow delete n:abc123 --recursive --force
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow delete
 # Search → select → confirm deletion
 ```
 
 **Output:**
+
 ```
 Deleted node: n:abc123
 Reparented 3 children to parent node
@@ -572,13 +620,16 @@ Reparented 3 children to parent node
 Change node's parent.
 
 **Arguments:**
+
 - `[node-id]`: Node to move (optional)
 - `[new-parent]`: New parent node (optional)
 
 **Flags:**
+
 - `--position <n>`: Insert at specific child position
 
 **Behavior (Explicit):**
+
 ```bash
 flow move n:abc123 n:xyz789
 # Moves n:abc123 under n:xyz789
@@ -588,6 +639,7 @@ flow move n:abc123 @today
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow move
 # Search for node → search for parent
@@ -597,6 +649,7 @@ flow move abc-123-def
 ```
 
 **Output:**
+
 ```
 Moved node: n:abc123
 New parent: n:xyz789
@@ -609,15 +662,18 @@ New parent: n:xyz789
 Add child node to parent.
 
 **Arguments:**
+
 - `[node-id]`: Parent node (optional)
 - `[content]`: Child content with optional inline tags/properties (optional)
 
 **Flags:**
+
 - `--position <n>`: Insert at specific position
 - `--tags <tags>`: Explicit tags (comma-separated, overrides inline)
 - `--property <key>=<value>`: Explicit property (repeatable, overrides inline)
 
 **Behavior (Explicit):**
+
 ```bash
 flow append n:abc123 "Subtask #task status:: todo"
 # Creates child under n:abc123 with tag [task] and property {status: "todo"}
@@ -630,6 +686,7 @@ flow append n:abc123 "Subtask" --tags task,urgent --property status=todo
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow append
 # Search for parent → editor for content with autocomplete
@@ -647,14 +704,17 @@ flow append abc-123-def
 Display node hierarchy.
 
 **Arguments:**
+
 - `[node-id]`: Root node (optional, defaults to current context)
 
 **Flags:**
+
 - `--depth <n>`: Limit tree depth
 - `--tags`: Show tags inline
 - `--ids`: Show node IDs
 
 **Behavior (Explicit):**
+
 ```bash
 flow tree n:abc123
 flow tree @today
@@ -662,12 +722,14 @@ flow tree .
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow tree
 # Search for root node
 ```
 
 **Output:**
+
 ```
 Project: Flow CLI [project, active]
 ├── Core Architecture
@@ -681,6 +743,7 @@ Project: Flow CLI [project, active]
 ```
 
 **Output (--json):**
+
 ```json
 {
   "root": {
@@ -699,25 +762,30 @@ Project: Flow CLI [project, active]
 List direct children of node.
 
 **Arguments:**
+
 - `[node-id]`: Parent node (optional)
 
 **Flags:**
+
 - `--count`: Show count only
 - `--tags <tag>`: Filter by tag
 
 **Behavior (Explicit):**
+
 ```bash
 flow children n:abc123
 flow children @today
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow children
 # Search for parent
 ```
 
 **Output:**
+
 ```
 Children of: Project: Flow CLI
 
@@ -735,24 +803,28 @@ Children of: Project: Flow CLI
 Show parent of node.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
 None
 
 **Behavior (Explicit):**
+
 ```bash
 flow parent n:abc123
 flow parent .
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow parent
 # Search for node
 ```
 
 **Output:**
+
 ```
 Parent of: CLI Implementation
 
@@ -766,17 +838,21 @@ n:xyz789  Project: Flow CLI
 Show breadcrumb trail from root to node.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--ids`: Show node IDs
 
 **Behavior (Explicit):**
+
 ```bash
 flow path n:d4e5f6
 ```
 
 **Output:**
+
 ```
 journals/2024-11-20.md
   → Project: Flow CLI
@@ -794,26 +870,31 @@ References are created by embedding `((node-id))` syntax directly in node conten
 Show all references to and from node.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--incoming`: Show only backlinks
 - `--outgoing`: Show only forward links
 - `--count`: Show counts only
 
 **Behavior (Explicit):**
+
 ```bash
 flow refs n:abc123
 flow refs .
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow refs
 # Search for node
 ```
 
 **Output:**
+
 ```
 References for: Project: Flow CLI
 
@@ -837,24 +918,29 @@ Incoming (5):
 Show incoming references only (nodes that link to this node).
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--context, -c`: Show surrounding content
 
 **Behavior (Explicit):**
+
 ```bash
 flow backlinks n:abc123
 flow backlinks .
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow backlinks
 # Search for node
 ```
 
 **Output:**
+
 ```
 Backlinks for: Project: Flow CLI
 
@@ -873,24 +959,29 @@ Incoming (5):
 Show outgoing references only (nodes that this node links to).
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--context, -c`: Show surrounding content
 
 **Behavior (Explicit):**
+
 ```bash
 flow mentions n:abc123
 flow mentions .
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow mentions
 # Search for node
 ```
 
 **Output:**
+
 ```
 Mentions from: Project: Flow CLI
 
@@ -909,13 +1000,16 @@ Outgoing (3):
 Apply tag(s) to node.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 - `[tags...]`: Tag name(s) (optional, can specify multiple)
 
 **Flags:**
+
 - `--create`: Create tag if it doesn't exist
 
 **Behavior (Explicit):**
+
 ```bash
 flow tag n:abc123 project
 # Applies single tag (promotes to stable if was temp)
@@ -928,6 +1022,7 @@ flow tag . project active
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow tag
 # Search for node → select from existing tags (fuzzy search)
@@ -939,19 +1034,21 @@ flow tag abc-123-def
 ```
 
 **Tag Picker UI:**
+
 ```
 Select tags: proj_
 
   [x] project (47 nodes)
   [ ] project-archived (12 nodes)
   [x] active (23 nodes)
-  
+
   [Create new tag: 'proj'] (press 'n')
 
 [Space Toggle | Enter Confirm | n New | ESC Cancel]
 ```
 
 **Output:**
+
 ```
 Tagged node: n:abc123
 Tags: [project, active]
@@ -964,6 +1061,7 @@ Tags: [project, active]
 Remove tag(s) from node.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 - `[tags...]`: Tag name(s) (optional, can specify multiple)
 
@@ -971,6 +1069,7 @@ Remove tag(s) from node.
 None
 
 **Behavior (Explicit):**
+
 ```bash
 flow untag n:abc123 project
 # Removes single tag
@@ -980,6 +1079,7 @@ flow untag n:abc123 urgent important
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow untag
 # Search for node → select from node's tags
@@ -989,6 +1089,7 @@ flow untag abc-123-def
 ```
 
 **Output:**
+
 ```
 Removed tags: [urgent, important]
 From node: n:abc123
@@ -1001,14 +1102,17 @@ From node: n:abc123
 Set property on node.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 - `<key>`: Property key
 - `[value]`: Property value (optional, opens editor if omitted)
 
 **Flags:**
+
 - `--type <type>`: Explicit type (string, number, date, reference, list)
 
 **Behavior (Explicit):**
+
 ```bash
 flow prop set n:abc123 status "in-progress"
 flow prop set . priority 1 --type number
@@ -1016,6 +1120,7 @@ flow prop set n:abc123 due @2024-12-01 --type date
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow prop set
 # Search for node → enter key → enter value
@@ -1025,6 +1130,7 @@ flow prop set abc-123-def status
 ```
 
 **Output:**
+
 ```
 Set property on: n:abc123
   status:: in-progress
@@ -1037,6 +1143,7 @@ Set property on: n:abc123
 Get property value.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 - `<key>`: Property key
 
@@ -1044,6 +1151,7 @@ Get property value.
 None
 
 **Behavior (Explicit):**
+
 ```bash
 flow prop get n:abc123 status
 # Output: in-progress
@@ -1052,6 +1160,7 @@ flow prop get . priority
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow prop get
 # Search for node → select from property list
@@ -1064,10 +1173,12 @@ flow prop get
 Delete property from node.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 - `<key>`: Property key
 
 **Flags:**
+
 - `--force, -f`: Skip confirmation
 
 **Behavior:**
@@ -1082,9 +1193,11 @@ Same pattern as other prop commands.
 Execute SQL query and return matching nodes.
 
 **Arguments:**
+
 - `<sql>`: SQL SELECT statement
 
 **Flags:**
+
 - `--format <format>`: Output format (list, tree, ids, table)
 - `--limit <n>`: Maximum results (overrides SQL LIMIT)
 - `--json`: Output as JSON
@@ -1098,6 +1211,7 @@ SELECT * FROM nodes WHERE condition [ORDER BY field] [LIMIT n]
 ```
 
 **Virtual Schema:**
+
 - `id` - Node UUID
 - `content` - Node content (TEXT)
 - `created` - Creation timestamp
@@ -1133,20 +1247,22 @@ flow query "SELECT * FROM nodes WHERE parent_id IN (SELECT id FROM nodes WHERE c
 ```
 
 **Output:**
+
 ```
 3 nodes found:
 
 n:a1b2c3  Project: Flow CLI [project, active]
           priority:: 5, status:: active
-             
+
 n:d4e5f6  Project: API Design [project, active]  
           priority:: 4, status:: planning
-             
+
 n:g7h8i9  Project: Documentation [project, active]
           priority:: 3, status:: active
 ```
 
 **JSON Output (--json):**
+
 ```json
 {
   "query": "SELECT * FROM nodes WHERE 'project' IN tags AND status = 'active'",
@@ -1172,14 +1288,17 @@ n:g7h8i9  Project: Documentation [project, active]
 Full-text search across all nodes. Convenience wrapper for SQL LIKE query.
 
 **Arguments:**
+
 - `<text>`: Search text
 
 **Flags:**
+
 - `--regex, -r`: Use regex pattern
 - `--case-sensitive, -i`: Case-sensitive search
 - `--tags <tags>`: Limit to nodes with tags
 
 **Examples:**
+
 ```bash
 flow find "CRDT implementation"
 # Equivalent to: SELECT * FROM nodes WHERE content LIKE '%CRDT implementation%'
@@ -1192,12 +1311,13 @@ flow find "^#+ " --regex
 ```
 
 **Output:**
+
 ```
 5 matches found:
 
 n:a1b2c3  Core Architecture
   ...discuss CRDT implementation details...
-  
+
 n:d4e5f6  Sync Protocol
   ...Loro CRDT implementation provides...
 ```
@@ -1209,13 +1329,16 @@ n:d4e5f6  Sync Protocol
 Find all nodes with specific tag. Convenience wrapper for SQL tag query.
 
 **Arguments:**
+
 - `<tag>`: Tag name
 
 **Flags:**
+
 - `--count`: Show count only
 - `--with-props`: Show properties
 
 **Examples:**
+
 ```bash
 flow tagged project
 # Equivalent to: SELECT * FROM nodes WHERE 'project' IN tags
@@ -1225,6 +1348,7 @@ flow tagged task --count
 ```
 
 **Output:**
+
 ```
 47 nodes tagged: project
 
@@ -1243,10 +1367,12 @@ n:g7h8i9  Project: Documentation
 Validate space integrity and report issues.
 
 **Flags:**
+
 - `--fix`: Attempt automatic fixes for simple issues
 - `--verbose`: Show detailed validation progress
 
 **Output:**
+
 ```
 ✓ 2,847 nodes parsed
 ✓ 23 tags validated
@@ -1271,6 +1397,7 @@ File: pages/notes.md:67
 ```
 
 **JSON Output:**
+
 ```json
 {
   "command": "check",
@@ -1296,14 +1423,17 @@ File: pages/notes.md:67
 Restore space to a previous state from CRDT history.
 
 **Arguments:**
+
 - `[timestamp]`: Target restore point (optional, interactive if omitted)
 
 **Flags:**
+
 - `--before <timestamp>`: Restore to state before given time
 - `--dry-run`: Show what would be restored without applying
 - `--file <path>`: Restore only specific file
 
 **Behavior (Explicit):**
+
 ```bash
 flow restore --before "2024-11-30 14:23:00"
 # Restores all files to state before that time
@@ -1313,12 +1443,14 @@ flow restore --file journals/2024-11-30.md --before "2024-11-30 14:23:00"
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow restore
 # Shows recent history, allows selecting restore point
 ```
 
 **Output:**
+
 ```
 Restore point: 2024-11-30 14:22:59
 
@@ -1339,13 +1471,16 @@ Proceed? [y/N] y
 Interactive repair wizard for broken references and other issues.
 
 **Arguments:**
+
 - `[issue-type]`: Type of issue to fix (optional: references, orphans, duplicates)
 
 **Flags:**
+
 - `--auto`: Apply automatic fixes without prompting
 - `--dry-run`: Show what would be fixed
 
 **Behavior (Interactive):**
+
 ```bash
 flow fix
 # Runs flow check, then offers to fix each issue
@@ -1355,6 +1490,7 @@ flow fix references
 ```
 
 **Output:**
+
 ```
 Found 3 broken references.
 
@@ -1384,13 +1520,16 @@ Choice: a
 Promote a temporary node to stable (permanent) ID.
 
 **Arguments:**
+
 - `[node-id]`: Temporary node ID to promote (optional)
 
 **Flags:**
+
 - `--all`: Promote all temporary nodes in current file
 - `--file <path>`: Promote all temporary nodes in specified file
 
 **Behavior (Explicit):**
+
 ```bash
 flow promote t:a3f821
 # Promotes single node
@@ -1400,12 +1539,14 @@ flow promote --file journals/2024-11-30.md
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow promote
 # Search for node to promote
 ```
 
 **Output:**
+
 ```
 Promoted: t:a3f821 → n:x9m4k1
 File: journals/2024-11-30.md
@@ -1413,6 +1554,7 @@ Content: "Important task to remember"
 ```
 
 **JSON Output:**
+
 ```json
 {
   "command": "promote",
@@ -1430,10 +1572,12 @@ Content: "Important task to remember"
 Show changes made outside of Flow (external editor edits).
 
 **Flags:**
+
 - `--since <timestamp>`: Show changes since given time
 - `--file <path>`: Filter to specific file
 
 **Output:**
+
 ```
 External changes detected:
 
@@ -1457,20 +1601,24 @@ Use 'flow restore --before <timestamp>' to revert changes.
 Import markdown file as nodes.
 
 **Arguments:**
+
 - `<file>`: Markdown file path
 
 **Flags:**
+
 - `--parent <node-id>`: Import under specific parent
 - `--preserve-structure`: Maintain heading hierarchy
 - `--tags <tags>`: Tag all imported nodes (comma-separated)
 
 **Examples:**
+
 ```bash
 flow import notes.md
 flow import project.md --parent n:abc123 --tags imported,archive
 ```
 
 **Output:**
+
 ```
 Imported 15 nodes from notes.md
 Root node: n:x9y8z7
@@ -1484,19 +1632,23 @@ Tags applied: [imported, archive]
 Import a Logseq graph into Flow.
 
 **Arguments:**
+
 - `<path>`: Path to Logseq graph directory
 
 **Flags:**
+
 - `--dry-run`: Show what would be imported without making changes
 - `--preserve-properties`: Keep Logseq-specific properties (collapsed, etc.)
 
 **Behavior:**
+
 ```bash
 flow import logseq ~/logseq-notes
 # Converts Logseq graph to Flow space
 ```
 
 **Conversion process:**
+
 1. Scans all markdown files
 2. Converts UUID references to Flow IDs
 3. Strips Logseq-specific properties (unless --preserve-properties)
@@ -1505,6 +1657,7 @@ flow import logseq ~/logseq-notes
 6. Validates converted space
 
 **Output:**
+
 ```
 Importing Logseq graph from: ~/logseq-notes
 
@@ -1535,21 +1688,25 @@ Import complete!
 Export node subtree to markdown.
 
 **Arguments:**
+
 - `[node-id]`: Root node to export (optional)
 - `[file]`: Output file path (optional, defaults to stdout)
 
 **Flags:**
+
 - `--depth <n>`: Limit export depth
 - `--with-properties`: Include property frontmatter
 - `--with-ids`: Include node IDs as comments
 
 **Behavior (Explicit):**
+
 ```bash
 flow export n:abc123 output.md
 flow export @today today.md --with-properties
 ```
 
 **Behavior (Interactive):**
+
 ```bash
 flow export
 # Search for node → enter filename
@@ -1562,13 +1719,16 @@ flow export
 Execute batch operations from file.
 
 **Arguments:**
+
 - `<script>`: Script file with commands (one per line)
 
 **Flags:**
+
 - `--dry-run`: Show what would be executed
 - `--continue-on-error`: Don't stop on first error
 
 **Script Format:**
+
 ```bash
 # comments allowed
 create "New project" --tag project
@@ -1577,6 +1737,7 @@ prop set $LAST_ID status "planning"
 ```
 
 **Special Variables:**
+
 ```
 $LAST_ID                              # ID from previous command
 $TODAY                                # Expands to @today
@@ -1591,6 +1752,7 @@ $TODAY                                # Expands to @today
 Push local changes to sync server.
 
 **Flags:**
+
 - `--force, -f`: Force push (overwrite conflicts)
 - `--dry-run`: Show what would be pushed
 
@@ -1601,6 +1763,7 @@ Push local changes to sync server.
 Pull changes from sync server.
 
 **Flags:**
+
 - `--force, -f`: Force pull (overwrite local changes)
 - `--dry-run`: Show what would be pulled
 
@@ -1611,6 +1774,7 @@ Pull changes from sync server.
 Show sync state and pending changes.
 
 **Output:**
+
 ```
 Sync Status: Connected
 Server: https://sync.example.com
@@ -1628,6 +1792,7 @@ Conflicts: 0
 Start local sync server.
 
 **Flags:**
+
 - `--port <port>`: Server port (default: 8080)
 - `--host <host>`: Bind address (default: 127.0.0.1)
 - `--public`: Allow external connections
@@ -1641,12 +1806,14 @@ Start local sync server.
 Show detailed node metadata.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
 None
 
 **Output:**
+
 ```
 Node: n:abc123
 Type: Stable
@@ -1667,22 +1834,25 @@ References: 8 (3 outgoing, 5 incoming)
 Show node edit history.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--limit <n>`: Limit history entries
 - `--diff`: Show content diffs
 
 **Output:**
+
 ```
 History for: abc-123-def
 
 2024-11-24 10:15:00  michael
   Modified content
-  
+
 2024-11-23 16:30:00  michael
   Added property: status=in-progress
-  
+
 2024-11-20 14:22:00  michael
   Created node
 ```
@@ -1694,9 +1864,11 @@ History for: abc-123-def
 Suggest related nodes based on content/references.
 
 **Arguments:**
+
 - `[node-id]`: Target node (optional)
 
 **Flags:**
+
 - `--limit <n>`: Maximum suggestions
 - `--algorithm <algo>`: Similarity algorithm (content, space, combined)
 
@@ -1725,6 +1897,7 @@ This enables name-based space access via `flow open <name>`.
 Get configuration value.
 
 **Examples:**
+
 ```bash
 flow config get default_space
 flow config get editor
@@ -1737,6 +1910,7 @@ flow config get editor
 Set configuration value.
 
 **Examples:**
+
 ```bash
 flow config set default_space /path/to/space
 flow config set editor nvim
@@ -1749,14 +1923,17 @@ flow config set editor nvim
 Remove space from registry (does not delete files).
 
 **Arguments:**
+
 - `<name>`: Registered space name
 
 **Examples:**
+
 ```bash
 flow config unregister old-project
 ```
 
 **Output:**
+
 ```
 Unregistered space: old-project
 Path: /path/to/space (files preserved)
@@ -1769,15 +1946,18 @@ Path: /path/to/space (files preserved)
 Rename registered space.
 
 **Arguments:**
+
 - `<old-name>`: Current space name
 - `<new-name>`: New space name
 
 **Examples:**
+
 ```bash
 flow config rename work work-archive
 ```
 
 **Output:**
+
 ```
 Renamed space: work → work-archive
 ```
@@ -1799,12 +1979,15 @@ Error messages written to stderr, results to stdout.
 ## Output Formats
 
 ### Default (Human-Readable)
+
 Formatted for terminal display with colors and formatting.
 
 ### JSON (`--json`)
+
 Machine-parsable JSON for scripting:
 
 **JSON Output (--json):**
+
 ```json
 {
   "command": "show",
@@ -1820,6 +2003,7 @@ Machine-parsable JSON for scripting:
 ```
 
 ### Raw (`--raw` where applicable)
+
 Unformatted content only, suitable for piping.
 
 ## Interactive Search Behavior
@@ -1835,6 +2019,7 @@ All interactive searches support:
 - Tab for autocomplete on partial matches
 
 Search results ranked by:
+
 1. Exact matches
 2. Recent modifications
 3. Content relevance
@@ -1852,6 +2037,7 @@ FLOW_CONFIG_HOME    Config directory (default: ~/.config/flow)
 ## Shell Completion
 
 Commands support shell completion for:
+
 - bash
 - zsh
 - fish

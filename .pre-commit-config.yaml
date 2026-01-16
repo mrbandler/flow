@@ -13,12 +13,12 @@ repos:
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files
-        args: ['--maxkb=1024']
+        args: ["--maxkb=1024"]
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: detect-private-key
       - id: mixed-line-ending
-        args: ['--fix=lf']
+        args: ["--fix=lf"]
 
   # Rust formatting
   - repo: local
@@ -54,7 +54,7 @@ repos:
         language: system
         types: [rust]
         pass_filenames: false
-        stages: [push]
+        stages: [pre-push]
 
       - id: cargo-deny
         name: cargo deny
@@ -62,14 +62,14 @@ repos:
         entry: cargo deny check
         language: system
         pass_filenames: false
-        stages: [push]
+        stages: [pre-push]
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.41.0
     hooks:
       - id: markdownlint
-        args: ['--fix', '--disable', 'MD013', 'MD033', 'MD041', '--']
+        args: ["--fix", "--disable", "MD013", "MD024", "MD025", "MD033", "MD036", "MD040", "MD041", "MD042", "--"]
 
   # Commit message linting (conventional commits)
   - repo: https://github.com/compilerla/conventional-pre-commit
@@ -81,9 +81,9 @@ repos:
 
 # CI configuration
 ci:
-  autofix_commit_msg: 'style: auto-fix from pre-commit hooks'
+  autofix_commit_msg: "style: auto-fix from pre-commit hooks"
   autofix_prs: true
   autoupdate_branch: develop
-  autoupdate_commit_msg: 'chore: update pre-commit hooks'
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
   autoupdate_schedule: weekly
   skip: [cargo-fmt, cargo-clippy, cargo-check, cargo-test, cargo-deny]

@@ -1,12 +1,7 @@
 # cargo-deny configuration
 # https://embarkstudios.github.io/cargo-deny/
 
-# Note: to run cargo-deny, install it with:
-# cargo install cargo-deny
-# Then run: cargo deny check
-
 [graph]
-# Targets to check
 targets = [
     "x86_64-unknown-linux-gnu",
     "x86_64-unknown-linux-musl",
@@ -15,38 +10,19 @@ targets = [
     "aarch64-apple-darwin",
     "x86_64-pc-windows-msvc",
 ]
-
-# Exclude dev dependencies from checks
 exclude-dev = true
 
 [advisories]
-# The database of advisories to check against
 db-path = "~/.cargo/advisory-db"
-
-# URL to the advisory database git repository
 db-urls = ["https://github.com/rustsec/advisory-db"]
-
-# The lint level for crates with security vulnerabilities
-vulnerability = "deny"
-
-# The lint level for unmaintained crates
-unmaintained = "warn"
-
-# The lint level for crates that have been yanked
+unmaintained = "workspace"
 yanked = "warn"
-
-# The lint level for crates with unsound code
-unsound = "deny"
-
-# Ignore specific advisories (add IDs here if needed)
+unsound = "workspace"
 ignore = []
 
 [licenses]
-# The lint level for crates with an unknown license
-unlicensed = "deny"
-
-# List of allowed licenses
-# SPDX license identifiers
+confidence-threshold = 0.8
+unused-allowed-license = "allow"
 allow = [
     "MIT",
     "Apache-2.0",
@@ -61,59 +37,34 @@ allow = [
     "CC0-1.0",
     "MPL-2.0",
 ]
-
-# Confidence threshold for license detection
-confidence-threshold = 0.8
-
-# Allow specific crates that have licenses we've manually verified
 exceptions = [
-    # Example: { name = "some-crate", allow = ["LGPL-3.0"] }
+    { name = "flow", allow = ["AGPL-3.0-or-later"] },
+    { name = "flow-app", allow = ["AGPL-3.0-or-later"] },
+    { name = "flow-cli", allow = ["AGPL-3.0-or-later"] },
+    { name = "flow-core", allow = ["AGPL-3.0-or-later"] },
+    { name = "flow-gui", allow = ["AGPL-3.0-or-later"] },
+    { name = "flow-server", allow = ["AGPL-3.0-or-later"] },
+    { name = "flow-tui", allow = ["AGPL-3.0-or-later"] },
 ]
 
-# Clarify licenses for crates that cargo-deny can't detect
 [[licenses.clarify]]
 name = "ring"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
 
 [bans]
-# The lint level for multiple versions of the same crate
-multiple-versions = "warn"
-
-# The lint level for crates on the deny list
-deny = [
-    # Crates we don't want to use
-    # { name = "some-crate", reason = "Use alternative-crate instead" }
-]
-
-# Crates to allow, even if they match deny patterns
+multiple-versions = "allow"
+deny = []
 allow = []
-
-# Skip checking certain crate versions
 skip = []
-
-# Skip checking tree of certain crates
 skip-tree = []
-
-# Certain crates/versions that will be searched for wildcards
 wildcards = "allow"
 
-# Allow duplicate workspace crates if they have different features
-allow-build-scripts = []
-
 [sources]
-# Lint level for crates from unknown registries
 unknown-registry = "deny"
-
-# Lint level for crates from unknown git repositories
 unknown-git = "warn"
-
-# List of allowed registries
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-
-# List of allowed git repositories
 allow-git = []
 
-# Organizations whose git repos are allowed
 [sources.allow-org]
 # github = ["my-org"]

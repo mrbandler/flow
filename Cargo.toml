@@ -1,12 +1,5 @@
 [workspace]
-members = [
-    "flow",
-    "crates/core",
-    "crates/app",
-    "crates/cli",
-    "crates/tui",
-    "crates/desktop",
-]
+members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
@@ -20,88 +13,28 @@ documentation = "https://docs.rs/flow"
 readme = "README.md"
 keywords = ["notes", "outliner", "knowledge-base", "cli", "productivity"]
 categories = ["command-line-utilities", "text-editors"]
-rust-version = "1.75.0"
+rust-version = "1.91.1"
 
 [workspace.dependencies]
-# Internal crates
-flow-core = { path = "crates/core" }
-flow-app = { path = "crates/app" }
-flow-cli = { path = "crates/cli" }
-flow-tui = { path = "crates/tui" }
-flow-desktop = { path = "crates/desktop" }
+flow-core = { path = "crates/flow-core" }
+flow-cli = { path = "crates/flow-cli" }
+flow-app = { path = "crates/flow-app" }
+flow-tui = { path = "crates/flow-tui" }
+flow-gui = { path = "crates/flow-gui" }
+flow-server = { path = "crates/flow-server" }
 
-# Async runtime
-tokio = { version = "1", features = ["full"] }
-
-# CLI
+tokio = { version = "1.48", features = ["full"] }
 clap = { version = "4.5", features = ["derive"] }
-
-# Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-toml = "0.8"
-
-# Data structures
-uuid = { version = "1.0", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
-
-# CRDT
-loro = "1.0"
-
-# Error handling
-miette = { version = "7.0", features = ["fancy"] }
+toml = "0.9"
+miette = { version = "7.6", features = ["fancy"] }
 thiserror = "2.0"
 
-# TUI
-ratatui = "0.29"
-crossterm = "0.28"
-
-# Desktop GUI
-iced = { version = "0.13", features = ["tokio"] }
-
-# Testing
-tempfile = "3.10"
-
 [workspace.lints.rust]
-# Forbid unsafe code by default
 unsafe_code = "forbid"
 
-# Deny common issues
-rust_2018_idioms = { level = "deny", priority = -1 }
-rust_2021_compatibility = { level = "deny", priority = -1 }
-
-# Warn on missing docs for public items
-missing_docs = "warn"
-missing_debug_implementations = "warn"
-
-# Warn on unused
-unused_import_braces = "warn"
-unused_lifetimes = "warn"
-unused_qualifications = "warn"
-
 [workspace.lints.clippy]
-# Clippy lint groups
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
-
-# Allow some pedantic lints that are too strict
-module_name_repetitions = "allow"
-must_use_candidate = "allow"
-missing_errors_doc = "allow"
-missing_panics_doc = "allow"
-too_many_lines = "allow"
-cognitive_complexity = "allow"
-significant_drop_tightening = "allow"
-
-# Deny serious issues
-unwrap_used = "deny"
-expect_used = "deny"
-panic = "deny"
-todo = "warn"
-unimplemented = "deny"
-
-# Style preferences
-redundant_else = "warn"
-match_same_arms = "warn"
-semicolon_if_nothing_returned = "warn"

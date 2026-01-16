@@ -42,6 +42,7 @@ Full-Text Search Engine
 Flow uses a hybrid ID system with two types of node identities:
 
 **Temporary IDs (position-based):**
+
 - Format: `t:abc123` (6-character hash)
 - Generated from file path, row, and column position
 - Regenerated on each parse based on position
@@ -51,6 +52,7 @@ Flow uses a hybrid ID system with two types of node identities:
 - Enables stable CLI JSON output for workflow chains
 
 **Stable IDs (permanent):**
+
 - Format: `n:abc123` (6-character unique identifier)
 - Embedded in markdown as HTML comment: `<!-- n:abc123 -->`
 - Survives external edits and re-imports
@@ -59,18 +61,21 @@ Flow uses a hybrid ID system with two types of node identities:
 - Required for object model features
 
 **ID Prefix Convention:**
+
 - `t:` prefix = temporary (position hash)
 - `n:` prefix = stable (permanent identifier)
 
 **Promotion Triggers:**
 
 A temporary node gets promoted to stable when:
+
 1. **First reference** - Another node references it via `((node-id))`
 2. **First tag** - Node receives a tag (`#tagname`)
 3. **First property** - Node receives a property (`key:: value`)
 4. **Explicit promotion** - User explicitly promotes a node
 
 **Promotion Process:**
+
 1. Generate unique 6-character identifier
 2. Create stable ID with `n:` prefix
 3. Embed HTML comment in node content: `<!-- n:abc123 -->`
@@ -82,6 +87,7 @@ A temporary node gets promoted to stable when:
 **Hash Collision Handling:**
 
 Position-based hashes have millions of combinations. Collisions within a single session are negligible. If collision occurs:
+
 - Detected during Graph insertion (ID already exists)
 - Append position suffix to disambiguate
 - Rare edge case, acceptable for temporary IDs
@@ -89,6 +95,7 @@ Position-based hashes have millions of combinations. Collisions within a single 
 ### Markdown Syntax
 
 **Standard outliner:**
+
 ```markdown
 - Node content
   - Child node
@@ -97,6 +104,7 @@ Position-based hashes have millions of combinations. Collisions within a single 
 ```
 
 **Flow extensions with stable ID:**
+
 ```markdown
 - Task node <!-- n:abc123 -->
   status:: in-progress
@@ -110,12 +118,14 @@ Position-based hashes have millions of combinations. Collisions within a single 
 Note: Properties use `key:: value` syntax (space after `::`).
 
 **Reference types:**
+
 - `((abc123))` - Bare reference (promotes target if temp)
 - `[Custom text](((abc123)))` - Aliased reference
 - `{{embed ((abc123))}}` - Transclude content
 - `((abc123))^` - Creation marker (node was created here, now lives elsewhere)
 
 **Syntax rules:**
+
 - HTML comment `<!-- n:... -->` marks stable ID (only present after promotion)
 - `key:: value` - Properties (arbitrary key-value pairs)
 - `#tagname` - Tags (inline in content)
@@ -126,14 +136,17 @@ Note: Properties use `key:: value` syntax (space after `::`).
 ### Graph Structure
 
 **Primary storage:**
+
 - All nodes keyed by ID for O(1) access
 
 **Fast lookup indices:**
+
 - **by_file** - All nodes in a file
 - **by_tag** - All nodes with a specific tag
 - **backlinks** - Which nodes reference each node
 
 **Node structure:**
+
 - `id` - Either temporary or stable with prefix
 - `file_path` - Location in filesystem
 - `position` - Row and column for temp ID generation
@@ -145,9 +158,11 @@ Note: Properties use `key:: value` syntax (space after `::`).
 - `created_at, modified_at` - Timestamps
 
 **Property types:**
+
 - Text, Number, Boolean, Date (ISO 8601), Reference (node-id), List
 
 **Why efficient lookup over graph library:**
+
 - O(1) node lookup by ID
 - No need for graph algorithms (shortest path, cycle detection, etc.)
 - Outliner is a tree (acyclic by design)
@@ -156,6 +171,7 @@ Note: Properties use `key:: value` syntax (space after `::`).
 - Easier to understand, debug, and serialize
 
 **Traversal operations:**
+
 - Get children: Access node's children list, lookup each in storage
 - Get parent: Access node's parent, lookup in storage
 - Get ancestors: Walk parent chain until none
@@ -167,6 +183,7 @@ Note: Properties use `key:: value` syntax (space after `::`).
 ### Parser Selection
 
 **Requirements:**
+
 - Fast parsing performance
 - Event-based streaming (memory efficient)
 - Well-tested and maintained
@@ -176,7 +193,7 @@ Note: Properties use `key:: value` syntax (space after `::`).
 
 ```
 Markdown text
-  ↓ 
+  ↓
 Parser events
   ↓
 FlowNode AST
@@ -187,6 +204,7 @@ Graph
 ### Stage 1: Event Processing
 
 The parser emits events as it parses:
+
 - List boundaries (start/end)
 - List item boundaries (start/end)
 - Text content
@@ -227,6 +245,7 @@ For each list item's accumulated text:
    - Each creates appropriate reference variant
 
 **Reference variants:**
+
 - Bare - Simple node reference
 - Aliased - Reference with custom display text
 - Embed - Transclusion
@@ -252,17 +271,20 @@ Build Graph from FlowNode tree:
 ### File Storage Model
 
 **Structure:**
+
 - Map of file paths to file containers
 - Each container has:
   - **content** - Entire markdown file as CRDT text
   - **metadata** - File path, timestamps, etc.
 
 **Metadata tracked:**
+
 - `path` - File path relative to space root
 - `modified_at` - When CRDT was last updated
 - `mtime` - Filesystem mtime for change detection
 
 **Why CRDT text per file:**
+
 - CRDT text operations handle concurrent edits automatically
 - Character-level conflict resolution
 - Simple sync protocol (text deltas)
@@ -272,6 +294,7 @@ Build Graph from FlowNode tree:
 ### Sync Protocol
 
 **Local edit flow:**
+
 1. User edits node in Flow
 2. Update in-memory Graph
 3. Render entire file to markdown (includes HTML comments for stable IDs)
@@ -281,6 +304,7 @@ Build Graph from FlowNode tree:
 7. Server broadcasts to other devices
 
 **Remote update flow:**
+
 1. Receive CRDT operations from server
 2. CRDT applies operations (automatic merge)
 3. Subscriber notified of file content change
@@ -294,12 +318,14 @@ Build Graph from FlowNode tree:
 CRDT text automatically merges concurrent character-level edits. No manual intervention needed. Both devices converge to same text state.
 
 **Example concurrent edits:**
+
 - Device A: "Task" → "Task A"
 - Device B: "Task" → "Task B"
 - CRDT merge: "Task AB" or "Task BA" (deterministic)
 - Both devices converge automatically
 
 **Temp ID regeneration across devices:**
+
 - Temp IDs are position-based, regenerated on each parse
 - Same file position = same temp ID hash across devices
 - Only matters for stable IDs (which sync via HTML comments)
@@ -308,12 +334,14 @@ CRDT text automatically merges concurrent character-level edits. No manual inter
 ### Change Detection
 
 **On startup:**
+
 - Scan all markdown files in filesystem
 - For each file, compare filesystem mtime with CRDT metadata mtime
 - If filesystem newer or file not in CRDT: import
 - If file in CRDT but not on filesystem: delete from CRDT
 
 **During runtime:**
+
 - File watcher detects changes to markdown files
 - Check if export lock exists (ignore if Flow wrote the file)
 - Read new content, update CRDT
@@ -327,6 +355,7 @@ CRDT text automatically merges concurrent character-level edits. No manual inter
 **Index location:** `.flow/search_index/`
 
 **Schema fields:**
+
 - `id` (stored) - Node ID (stable only, temp IDs not indexed)
 - `file_path` (stored) - File location
 - `content` (searchable) - Node text content
@@ -337,6 +366,7 @@ CRDT text automatically merges concurrent character-level edits. No manual inter
 **Indexing strategy:**
 
 When nodes change:
+
 1. Build search document from node
 2. Only index stable nodes (promoted with tags/properties/references)
 3. Temp nodes not indexed (transient, no object features)
@@ -345,6 +375,7 @@ When nodes change:
 6. Periodic commit (e.g., every 100 changes or 1 second)
 
 **Query capabilities:**
+
 - Full-text: `content:rust`
 - Tag filtering: `tag:project`
 - Boolean: `rust AND project`
@@ -378,6 +409,7 @@ For a node with text "Testing implementation details":
 5. **Return** - Remaining nodes are unlinked mentions
 
 **Use case:**
+
 - Node A: "Testing implementation"
 - Node B: "Need to write more tests" ← mention of "test"
 - Node C: "See ((node-a-id))" ← explicit reference (excluded)
@@ -394,17 +426,17 @@ Flow uses SQL-like syntax for queries, targeting developers who already know SQL
 SELECT * FROM nodes WHERE 'project' IN tags;
 
 -- Property filters
-SELECT * FROM nodes 
-WHERE 'task' IN tags 
+SELECT * FROM nodes
+WHERE 'task' IN tags
 AND properties.priority > 5;
 
 -- Text search + filters
-SELECT * FROM nodes 
+SELECT * FROM nodes
 WHERE content CONTAINS 'rust'
 AND 'urgent' IN tags;
 
 -- Backlinks
-SELECT * FROM nodes 
+SELECT * FROM nodes
 WHERE id IN (SELECT source FROM backlinks WHERE target = 'n:abc123');
 ```
 
@@ -427,6 +459,7 @@ WHERE id IN (SELECT source FROM backlinks WHERE target = 'n:abc123');
 Flow accepts that users may edit markdown in external editors and break references. The system detects and reports these issues clearly.
 
 **Broken reference information:**
+
 - Source node ID
 - Target ID that doesn't exist
 - Reference type (bare, aliased, embed)
@@ -438,6 +471,7 @@ Flow accepts that users may edit markdown in external editors and break referenc
 For each node, check all references. If a reference target doesn't exist in the graph, record it as broken.
 
 **CLI validation example:**
+
 ```bash
 $ flow check
 ✓ 2,847 nodes parsed
@@ -459,11 +493,13 @@ File: projects/flow.md:103
 When external edits corrupt the space, CRDT history provides recovery:
 
 **Capabilities:**
+
 - Show what changed outside Flow since a given timestamp
 - Filter to only external (non-Flow) changes
 - Restore to a specific point in time
 
 **Recovery workflow:**
+
 ```bash
 $ flow check
 ✗ 12 broken references after external edit
@@ -486,16 +522,19 @@ $ flow restore --before "2024-11-30 14:23:00"
 Flow provides one-way import from Logseq to Flow. This is a conversion tool, not bidirectional sync.
 
 **ID Conversion:**
+
 - Logseq uses UUID format: `id:: 60a78b6b-b74f-4496-a7b7-dc0d454ca4f3`
 - Flow uses short ID format: `<!-- n:a3k9m2 -->`
 - Build UUID→Flow ID mapping, rewrite all references
 
 **Property Handling:**
+
 - Keep user properties: `status:: done`, `priority:: 5`
 - Strip Logseq-specific: `collapsed:: true`, `card-*`, `id::`
 - Convert heading levels: `heading:: 2` → markdown `##`
 
 **Reference Rewriting:**
+
 - `((uuid))` → `((n:flowid))`
 - `{{embed ((uuid))}}` → `{{embed ((n:flowid))}}`
 - `[Label](((uuid)))` → `[Label](((n:flowid)))`
@@ -514,6 +553,7 @@ Flow provides one-way import from Logseq to Flow. This is a conversion tool, not
 4. **Phase 4: Validate** - Load graph and check for broken references
 
 **Import validation:**
+
 - All UUID references mapped to Flow IDs
 - No broken references after conversion
 - Properties preserved (minus Logseq-specific ones)
@@ -666,6 +706,7 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 ```
 
 **Key behaviors:**
+
 - Temp IDs valid for immediate operations in sequence
 - Promotion returns new stable ID
 - Move returns new temp ID (position changed)
@@ -676,6 +717,7 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 **Scenario:** Edit on Device A appears on Device B
 
 **Device A:**
+
 1. User edits → Graph updated
 2. File rendered (includes HTML comments for stable IDs)
 3. CRDT updated → operation generated
@@ -683,6 +725,7 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 5. Server broadcasts to connected devices
 
 **Device B:**
+
 1. Receives CRDT operation
 2. CRDT applies (automatic merge)
 3. File content changed (subscriber notified)
@@ -696,6 +739,7 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 9. UI refreshes
 
 **Conflict example:**
+
 - Device A & B both edit same line concurrently
 - CRDT merges at character level
 - HTML comments preserved (stable IDs intact)
@@ -703,6 +747,7 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 - No manual resolution needed
 
 **Temp ID behavior:**
+
 - Not synced (regenerated locally based on position)
 - Same file position = same temp ID hash on all devices
 - Unpromoted nodes remain unpromoted across sync
@@ -712,11 +757,13 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 ### Query Operations
 
 **By tag:**
+
 - Lookup in by_tag index: O(1)
 - Return list of NodeIds (stable only, promoted nodes)
 - Typical: <1ms
 
 **Full-text search:**
+
 - Parse query
 - Search index (stable nodes only)
 - Return stable node IDs
@@ -724,11 +771,13 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 - Typical: <10ms for 10k nodes
 
 **Backlinks:**
+
 - Lookup in backlinks index: O(1)
 - Return list of NodeIds (stable only)
 - Typical: <1ms
 
 **Unlinked mentions:**
+
 - Extract key terms from node text
 - Build search query (OR of terms)
 - Search index (stable nodes only)
@@ -736,6 +785,7 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 - Typical: <10ms
 
 **Complex queries:**
+
 - Combine indices (e.g., by_tag + property filter)
 - Iterator chaining and filtering
 - Only stable nodes have tags/properties
@@ -748,17 +798,20 @@ $ flow move "t:a3f821" --to "projects/flow.md"
 **Debounced export strategy:**
 
 Changes don't immediately write to disk. Instead:
+
 1. Mark file as dirty in-memory set
 2. Start/reset timer (e.g., 100ms)
 3. When timer expires: Export all dirty files
 4. Clear dirty set
 
 **Benefits:**
+
 - Batch multiple rapid edits to same file
 - Reduce disk I/O
 - Avoid thrashing external file watchers
 
 **Per-file export lock:**
+
 - Before writing a file, create lock file alongside it
 - Prevents file watcher from treating our write as external edit
 - Remove lock file after write completes
@@ -767,11 +820,12 @@ Changes don't immediately write to disk. Instead:
 **Rendering process:**
 
 For each dirty file:
+
 1. Get all nodes for this file from Graph (by_file index)
 2. Filter to root nodes (parent = None)
 3. Recursively render tree:
    - Indentation: depth × 2 spaces
-   - Bullet: `- `
+   - Bullet: `-`
    - Content text
    - If stable node: Append HTML comment `<!-- n:abc123 -->`
    - Other properties: `key:: value` lines (sorted alphabetically)
@@ -784,6 +838,7 @@ For each dirty file:
 **Atomic writes:** Temp file + rename ensures complete file or nothing, prevents corruption if crash during write.
 
 **HTML Comment Placement:**
+
 ```markdown
 - Task content here <!-- n:abc123 -->
   status:: done
@@ -796,6 +851,7 @@ Comment appears at end of first line for clean rendering.
 ## File Organization
 
 **Space directory:**
+
 ```
 my-space/
 ├─ .flow/
@@ -813,6 +869,7 @@ my-space/
 ```
 
 **Multi-space configuration:**
+
 ```
 ~/.flow/
 ├─ config.toml              # Global config
@@ -824,6 +881,7 @@ my-space/
 ```
 
 **File watching:**
+
 - Watch journals/ and pages/ recursively
 - Ignore .flow/ directory
 - Ignore changes during export (check for lock)
@@ -837,6 +895,7 @@ my-space/
 **Detection:** Load fails with parse error
 
 **Recovery strategy:**
+
 1. Check .flow/backups/ for recent snapshots
 2. If backup < 24h old: Restore from backup, warn user
 3. If no recent backup: Rebuild from markdown
@@ -851,6 +910,7 @@ my-space/
 **Detection:** Search engine open/search fails
 
 **Recovery:**
+
 1. Delete search index directory
 2. Rebuild from Graph (stable nodes only)
 3. Index all promoted nodes
@@ -861,6 +921,7 @@ my-space/
 **Detection:** Parser encounters malformed structure or custom syntax extraction fails
 
 **Handling:**
+
 - Log error with file path and approximate location
 - Skip malformed content
 - Continue parsing rest of file
@@ -872,6 +933,7 @@ my-space/
 **Detection:** Invalid ID format in HTML comment
 
 **Handling:**
+
 - Log warning: "Invalid stable ID format in file:line"
 - Treat node as unpromoted (generate temp ID)
 - User can fix manually or re-promote
@@ -881,6 +943,7 @@ my-space/
 **Handling:** CRDT automatically resolves at character level
 
 **Edge cases:**
+
 - Concurrent delete and edit: CRDT may resurrect deleted content
 - Multiple concurrent edits: Merged deterministically
 - HTML comments preserved in merge (stable IDs intact)
@@ -893,13 +956,14 @@ my-space/
 **Detection:** After parsing, validate all references point to existing nodes
 
 **User experience:**
+
 ```bash
 $ flow check
 ✗ 3 broken references found
 
 File: journals/2024-11-30.md:42
   ((n:xyz789)) → Target does not exist
-  
+
 $ flow fix --interactive
 Fix broken reference ((n:xyz789))?
   [1] Remove reference
@@ -913,11 +977,13 @@ If user broke references in external editor, they can restore to last working st
 ## Performance Targets
 
 **Startup:**
+
 - 1000 files, 50k nodes: <1 second
 - Parallel parsing across CPU cores
 - Typical: 8 cores parsing 125 files each
 
 **Runtime operations:**
+
 - Node creation: <10ms
 - Node edit: <10ms
 - Node promotion: <15ms
@@ -928,16 +994,19 @@ If user broke references in external editor, they can restore to last working st
 - Unlinked mentions: <10ms
 
 **Sync:**
+
 - Local edit → remote visible: <50ms
 - Remote edit → local visible: <20ms
 - Conflict merge: automatic (no delay)
 
 **Memory:**
+
 - 50k nodes: ~70MB total
 - 100k nodes: ~140MB total
 - Acceptable for desktop/laptop use
 
 **Disk:**
+
 - CRDT file: ~10KB per 100 nodes
 - Search index: ~50KB per 1000 stable nodes
 - Markdown: User content size + HTML comments
@@ -945,18 +1014,21 @@ If user broke references in external editor, they can restore to last working st
 ## Security & Privacy
 
 **Local-first guarantees:**
+
 - All data stored locally by default
 - No telemetry or analytics
 - No required cloud services
 - Sync server optional and self-hostable
 
 **File permissions:**
+
 - .flow/ directory: User read/write only
 - Markdown files: Inherit parent directory permissions
 - No elevation required
 - Standard filesystem security
 
 **Sync server (when enabled):**
+
 - Optional end-to-end encryption (future)
 - Self-hosted option
 - Open source implementation

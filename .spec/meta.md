@@ -37,12 +37,12 @@ Any child nodes of the tag definition are treated as a template. When the tag is
 **Example:**
 
 ```bash
-flow add "Project Tag #tag-definition 
-  name:: project 
-  description:: \"Represents a project with status tracking\" 
-  color:: #3b82f6 
-  icon:: 📦 
-  schema:: [status,priority,owner,due-date,description] 
+flow add "Project Tag #tag-definition
+  name:: project
+  description:: \"Represents a project with status tracking\"
+  color:: #3b82f6
+  icon:: 📦
+  schema:: [status,priority,owner,due-date,description]
   required-properties:: [status]"
 
 # Add template structure as children
@@ -53,6 +53,7 @@ flow append <project-tag-def-id> "## Notes"
 ```
 
 **Resulting Tag Definition Node:**
+
 ```markdown
 - Project Tag <!-- n:abc123 -->
   #tag-definition
@@ -75,6 +76,7 @@ flow add "New Product Launch #project status:: planning"
 ```
 
 The system automatically creates (template children auto-applied):
+
 ```markdown
 - New Product Launch <!-- n:def456 -->
   #project
@@ -110,16 +112,17 @@ Defines a property with type, constraints, and validation rules.
 **Example:**
 
 ```bash
-flow add "Status Property #property-definition 
-  name:: status 
-  type:: enum 
-  values:: [planning,active,blocked,done,archived] 
-  required:: false 
-  default:: planning 
+flow add "Status Property #property-definition
+  name:: status
+  type:: enum
+  values:: [planning,active,blocked,done,archived]
+  required:: false
+  default:: planning
   description:: \"Current state of a task or project\""
 ```
 
 **Resulting Node:**
+
 ```markdown
 - Status Property <!-- n:prop01 -->
   #property-definition
@@ -151,11 +154,11 @@ Defines a database view for querying and displaying nodes using SQL syntax.
 **Example:**
 
 ```bash
-flow add "Active Projects View #view-definition 
-  name:: active-projects 
-  query:: \"SELECT * FROM nodes WHERE 'project' IN tags AND status = 'active'\" 
-  display-properties:: [name,owner,due-date,priority] 
-  sort-by:: priority 
+flow add "Active Projects View #view-definition
+  name:: active-projects
+  query:: \"SELECT * FROM nodes WHERE 'project' IN tags AND status = 'active'\"
+  display-properties:: [name,owner,due-date,priority]
+  sort-by:: priority
   sort-order:: desc"
 ```
 
@@ -191,36 +194,44 @@ These properties have special behavior:
 ### Supported Types
 
 **string**
+
 - Any text value
 - Optional `pattern` for regex validation
 - Optional `min`/`max` for length constraints
 
 **number**
+
 - Integer or floating point
 - Optional `min`/`max` for range constraints
 
 **boolean**
+
 - `true` or `false`
 
 **date**
+
 - ISO 8601 date or datetime
 - Can use date references (@today, etc.)
 
 **reference**
+
 - NodeId pointing to another node
 - Optional `reference-tag` to constrain target type
 - Syntax: `@node-id` or `[[node-id]]`
 
 **list**
+
 - Array of values of any type
 - Syntax: `[item1, item2, item3]`
 
 **enum**
+
 - String constrained to specific values
 - Must define `values` property in definition
 - Syntax: one of the allowed values
 
 **map** (future)
+
 - Key-value pairs
 - Syntax: `{key1: value1, key2: value2}`
 
@@ -281,11 +292,11 @@ fn validate_reference_properties(node: &Node, graph: &Graph) -> Vec<ValidationEr
 **Step 1: Define Task Tag**
 
 ```bash
-flow add "Task Tag #tag-definition 
-  name:: task 
-  icon:: ✓ 
-  color:: #10b981 
-  schema:: [status,priority,assignee,due-date,estimate] 
+flow add "Task Tag #tag-definition
+  name:: task
+  icon:: ✓
+  color:: #10b981
+  schema:: [status,priority,assignee,due-date,estimate]
   required-properties:: [status]"
 ```
 
@@ -293,45 +304,45 @@ flow add "Task Tag #tag-definition
 
 ```bash
 # Status property
-flow add "Task Status #property-definition 
-  name:: status 
-  type:: enum 
-  values:: [todo,in-progress,blocked,done] 
+flow add "Task Status #property-definition
+  name:: status
+  type:: enum
+  values:: [todo,in-progress,blocked,done]
   default:: todo"
 
 # Priority property
-flow add "Priority #property-definition 
-  name:: priority 
-  type:: number 
-  min:: 1 
-  max:: 5 
+flow add "Priority #property-definition
+  name:: priority
+  type:: number
+  min:: 1
+  max:: 5
   default:: 3"
 
 # Assignee property
-flow add "Assignee #property-definition 
-  name:: assignee 
-  type:: reference 
+flow add "Assignee #property-definition
+  name:: assignee
+  type:: reference
   reference-tag:: person"
 
 # Due date property
-flow add "Due Date #property-definition 
-  name:: due-date 
+flow add "Due Date #property-definition
+  name:: due-date
   type:: date"
 
 # Estimate property
-flow add "Estimate #property-definition 
-  name:: estimate 
-  type:: number 
+flow add "Estimate #property-definition
+  name:: estimate
+  type:: number
   description:: \"Estimated hours\""
 ```
 
 **Step 3: Define Person Tag**
 
 ```bash
-flow add "Person Tag #tag-definition 
-  name:: person 
-  icon:: 👤 
-  color:: #6366f1 
+flow add "Person Tag #tag-definition
+  name:: person
+  icon:: 👤
+  color:: #6366f1
   schema:: [email,role,team]"
 ```
 
@@ -339,18 +350,18 @@ flow add "Person Tag #tag-definition
 
 ```bash
 # My tasks view
-flow add "My Tasks #view-definition 
-  name:: my-tasks 
-  query:: \"SELECT * FROM nodes WHERE 'task' IN tags AND assignee = '@me' AND status != 'done'\" 
-  display-properties:: [status,priority,due-date] 
-  sort-by:: priority 
+flow add "My Tasks #view-definition
+  name:: my-tasks
+  query:: \"SELECT * FROM nodes WHERE 'task' IN tags AND assignee = '@me' AND status != 'done'\"
+  display-properties:: [status,priority,due-date]
+  sort-by:: priority
   sort-order:: desc"
 
 # Overdue tasks view
-flow add "Overdue #view-definition 
-  name:: overdue-tasks 
-  query:: \"SELECT * FROM nodes WHERE 'task' IN tags AND due_date < CURRENT_DATE AND status != 'done'\" 
-  display-properties:: [assignee,due-date,priority] 
+flow add "Overdue #view-definition
+  name:: overdue-tasks
+  query:: \"SELECT * FROM nodes WHERE 'task' IN tags AND due_date < CURRENT_DATE AND status != 'done'\"
+  display-properties:: [assignee,due-date,priority]
   sort-by:: due-date"
 ```
 
@@ -361,11 +372,11 @@ flow add "Overdue #view-definition
 flow add "Alice Smith #person email:: alice@example.com role:: engineer team:: backend"
 
 # Create a task
-flow add "Implement query engine #task 
-  status:: in-progress 
-  priority:: 5 
-  assignee:: ((n:alice1)) 
-  due-date:: 2024-12-01 
+flow add "Implement query engine #task
+  status:: in-progress
+  priority:: 5
+  assignee:: ((n:alice1))
+  due-date:: 2024-12-01
   estimate:: 8"
 
 # The #task tag automatically adds its template structure as children
@@ -377,10 +388,10 @@ flow add "Implement query engine #task
 
 ```bash
 # Create the tag definition
-flow add "Article Tag #tag-definition 
-  name:: article 
-  icon:: 📄 
-  schema:: [category,published,author,reviewed] 
+flow add "Article Tag #tag-definition
+  name:: article
+  icon:: 📄
+  schema:: [category,published,author,reviewed]
   required-properties:: [category,author]"
 
 # Add template structure
@@ -392,19 +403,19 @@ flow append <article-tag-def-id> "## References"
 **Define Category Property**
 
 ```bash
-flow add "Category #property-definition 
-  name:: category 
-  type:: enum 
+flow add "Category #property-definition
+  name:: category
+  type:: enum
   values:: [tutorial,reference,guide,concept,api-docs]"
 ```
 
 **Create View**
 
 ```bash
-flow add "Published Articles #view-definition 
-  name:: published-articles 
-  query:: \"SELECT * FROM nodes WHERE 'article' IN tags AND published = true\" 
-  display-properties:: [category,author,reviewed] 
+flow add "Published Articles #view-definition
+  name:: published-articles
+  query:: \"SELECT * FROM nodes WHERE 'article' IN tags AND published = true\"
+  display-properties:: [category,author,reviewed]
   sort-by:: category"
 ```
 
@@ -412,9 +423,9 @@ flow add "Published Articles #view-definition
 
 ```bash
 # Create article with template auto-applied
-flow add "Getting Started with Flow #article 
-  category:: tutorial 
-  author:: michael 
+flow add "Getting Started with Flow #article
+  category:: tutorial
+  author:: michael
   published:: true"
 
 # Template children automatically added:
@@ -520,10 +531,10 @@ These could be added for common use cases:
 Define custom relationship types between nodes:
 
 ```bash
-flow add "Depends On Relation #relation-definition 
-  name:: depends-on 
-  source-tag:: task 
-  target-tag:: task 
+flow add "Depends On Relation #relation-definition
+  name:: depends-on
+  source-tag:: task
+  target-tag:: task
   inverse:: blocked-by"
 ```
 
@@ -532,9 +543,9 @@ flow add "Depends On Relation #relation-definition
 Define automated behaviors:
 
 ```bash
-flow add "Auto-Archive Completed #automation-definition 
-  name:: archive-completed 
-  trigger:: \"prop:status=done\" 
+flow add "Auto-Archive Completed #automation-definition
+  name:: archive-completed
+  trigger:: \"prop:status=done\"
   action:: \"set prop:archived=true\""
 ```
 
@@ -543,10 +554,10 @@ flow add "Auto-Archive Completed #automation-definition
 Define external integrations:
 
 ```bash
-flow add "Slack Notification #webhook-definition 
-  name:: slack-notify-tasks 
-  url:: \"https://hooks.slack.com/...\" 
-  trigger:: \"tag:task AND prop:priority=5\" 
+flow add "Slack Notification #webhook-definition
+  name:: slack-notify-tasks
+  url:: \"https://hooks.slack.com/...\"
+  trigger:: \"tag:task AND prop:priority=5\"
   template:: \"{content} is high priority\""
 ```
 
@@ -557,14 +568,14 @@ flow add "Slack Notification #webhook-definition
 Tags can inherit schemas from other tags:
 
 ```bash
-flow add "Task Tag #tag-definition 
-  name:: task 
+flow add "Task Tag #tag-definition
+  name:: task
   schema:: [status,priority]"
 
-flow add "Bug Tag #tag-definition 
-  name:: bug 
-  inherits:: task 
-  schema:: [severity,reproducible] 
+flow add "Bug Tag #tag-definition
+  name:: bug
+  inherits:: task
+  schema:: [severity,reproducible]
   required-properties:: [severity]"
 ```
 
@@ -585,27 +596,32 @@ Future versions may add configurable validation modes (warn-only, permissive) fo
 Frontends should leverage meta-model for enhanced UX:
 
 **Tag Autocomplete:**
+
 - Show only valid tags based on context
 - Display tag icons and colors
 - Show schema properties when tag selected
 - Indicate if tag has template
 
 **Property Autocomplete:**
+
 - Show property definitions for current tags
 - Display type information
 - Validate as user types
 
 **Schema Hints:**
+
 - Show required properties for applied tags
 - Highlight validation errors inline
 - Suggest properties from schema
 
 **View Rendering:**
+
 - Execute SQL view queries
 - Display configured properties
 - Apply sorting and grouping
 
 **Template Indication:**
+
 - Show preview of template structure when selecting tag
 - Indicate that child nodes will be created
 - Allow opting out of template application
@@ -640,6 +656,7 @@ Meta-model provides:
 7. **Evolution** - Schema changes without migration
 
 Built-in primitives:
+
 - `#tag-definition` - Define object types with templates
 - `#property-definition` - Define typed properties
 - `#view-definition` - Define SQL database views

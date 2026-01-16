@@ -30,11 +30,14 @@ This project adheres to a code of conduct. By participating, you are expected to
 
 1. Fork the repository on GitHub
 2. Clone your fork locally:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/flow.git
    cd flow
    ```
+
 3. Add the upstream repository:
+
    ```bash
    git remote add upstream https://github.com/mrbandler/flow.git
    ```
@@ -63,11 +66,45 @@ rustup component add clippy
 # Dependency auditing
 cargo install cargo-deny
 
-# Code coverage (optional)
-cargo install cargo-llvm-cov
+# Changelog generation (optional)
+cargo install git-cliff
+
+# Documentation site (optional)
+cargo install mdbook
 
 # Watch mode for development (optional)
 cargo install cargo-watch
+```
+
+### Install Pre-commit Hooks
+
+We use [pre-commit](https://pre-commit.com/) to automatically run checks before commits. This ensures code quality and consistency across all contributions.
+
+```bash
+# Install pre-commit (choose one method)
+pip install pre-commit          # via pip
+pipx install pre-commit         # via pipx (recommended)
+brew install pre-commit         # via Homebrew (macOS)
+scoop install pre-commit        # via Scoop (Windows)
+```
+
+Then install the git hooks:
+
+```bash
+# Install pre-commit hooks
+pre-commit install
+
+# Install commit message validation (for conventional commits)
+pre-commit install --hook-type commit-msg
+
+# Install pre-push hooks (runs tests and cargo-deny)
+pre-commit install --hook-type pre-push
+```
+
+The hooks will now run automatically on every commit. To run all hooks manually:
+
+```bash
+pre-commit run --all-files
 ```
 
 ### Verify Setup
@@ -90,17 +127,16 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 ```
 flow/
-├── flow/                  # Main binary crate
-│   └── src/
-│       └── main.rs        # Entry point with feature flags
 ├── crates/
-│   ├── core/              # Core library (data structures, storage)
-│   ├── app/               # Application logic (shared between UIs)
-│   ├── cli/               # CLI commands and interface
-│   ├── tui/               # Terminal UI
-│   ├── desktop/           # Desktop GUI (iced)
-│   ├── server/            # Server/API (future)
-│   └── web/               # Web frontend (future)
+│   ├── flow/              # Main binary crate
+│   │   └── src/
+│   │       └── main.rs    # Entry point with feature flags
+│   ├── flow-core/         # Core library (data structures, storage)
+│   ├── flow-app/          # Application logic (shared between UIs)
+│   ├── flow-cli/          # CLI commands and interface
+│   ├── flow-tui/          # Terminal UI (ratatui, crossterm)
+│   ├── flow-gui/          # Desktop GUI (iced)
+│   ├── flow-server/       # Server (future)
 ├── tests/                 # Integration tests
 ├── Cargo.toml             # Workspace configuration
 ├── rustfmt.toml           # Formatting rules
@@ -111,14 +147,15 @@ flow/
 
 ### Binary Variants
 
-Flow builds multiple binary variants using feature flags:
+Flow builds a single fat binary with varying features using feature flags:
 
-| Binary        | Features  | Description                |
-|---------------|-----------|----------------------------|
-| `flow`        | (default) | CLI only                   |
-| `flow-tui`    | `tui`     | CLI + Terminal UI          |
-| `flow-desktop`| `desktop` | CLI + Desktop application  |
-| `flow-full`   | `all`     | Everything included        |
+| Features  | Description                |
+|-----------|----------------------------|
+| (default) | CLI only                   |
+| `tui`     | CLI + Terminal UI          |
+| `gui`     | CLI + Desktop application  |
+| `server`  | CLI + Server               |
+| `all`     | Everything included        |
 
 Build specific variants:
 
@@ -130,7 +167,10 @@ cargo build --package flow
 cargo build --package flow --features tui
 
 # CLI + Desktop
-cargo build --package flow --features desktop
+cargo build --package flow --features gui
+
+# CLI + Server
+cargo build --package flow --features server
 
 # Full binary
 cargo build --package flow --features all
@@ -161,6 +201,7 @@ type(scope): description
 ```
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation
@@ -170,6 +211,7 @@ Types:
 - `chore`: Maintenance tasks
 
 Examples:
+
 ```
 feat(cli): add interactive mode for init command
 fix(core): handle empty graph paths correctly
@@ -188,10 +230,7 @@ All code must be formatted with `rustfmt`:
 cargo fmt --all
 ```
 
-Configuration is in `rustfmt.toml`. Key settings:
-- Max line width: 100 characters
-- Imports grouped by: std, external, crate
-- Use field init shorthand
+Configuration is in `rustfmt.toml`.
 
 ### Linting
 
@@ -253,6 +292,7 @@ cargo test --workspace -- --nocapture
 - Use `proptest` for property-based testing where appropriate
 
 Example:
+
 ```rust
 #[cfg(test)]
 mod tests {
@@ -262,10 +302,10 @@ mod tests {
     fn test_config_load_creates_default_when_missing() {
         // Arrange
         let temp_dir = tempfile::tempdir().unwrap();
-        
+
         // Act
         let config = Config::load_from(temp_dir.path()).unwrap();
-        
+
         // Assert
         assert!(config.spaces.is_empty());
         assert!(config.active_space.is_none());
@@ -273,20 +313,12 @@ mod tests {
 }
 ```
 
-### Code Coverage
-
-Generate coverage reports:
-
-```bash
-cargo llvm-cov --workspace --all-features --html
-open target/llvm-cov/html/index.html
-```
-
 ## Submitting Changes
 
 ### Before Submitting
 
 1. Ensure all checks pass:
+
    ```bash
    cargo fmt --all -- --check
    cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -301,9 +333,10 @@ open target/llvm-cov/html/index.html
 ### Pull Request Process
 
 1. Update your branch with the latest upstream changes:
+
    ```bash
    git fetch upstream
-   git rebase upstream/main
+   git rebase upstream/master
    ```
 
 2. Push your branch and create a pull request
