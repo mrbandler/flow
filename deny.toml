@@ -39,6 +39,9 @@ allow = [
     "MPL-2.0",
     "BSL-1.0",
 ]
+# Workspace crates use AGPL-3.0-or-later. Others can use and modify the code,
+# but if they run a modified version as a network service (e.g., SaaS), they
+# must make their source code available to users (see AGPL Section 13).
 exceptions = [
     { name = "flow", allow = ["AGPL-3.0-or-later"] },
     { name = "flow-app", allow = ["AGPL-3.0-or-later"] },
