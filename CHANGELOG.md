@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Space module with trait-based abstraction pattern for easy testing and extensibility
+- Filesystem module with local filesystem implementation
 - Initial project structure with workspace layout
 - CLI foundation with clap argument parsing
 - TUI crate placeholder (feature-gated)
