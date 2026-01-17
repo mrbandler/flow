@@ -1,4 +1,5 @@
 use clap::Subcommand;
+use flow_core::Space;
 use miette::Result;
 
 #[derive(Subcommand)]
@@ -11,7 +12,9 @@ pub enum Commands {
 /// # Errors
 ///
 /// Returns an error if the command execution fails.
-pub fn run(cmd: &Commands) -> Result<()> {
+pub async fn run(cmd: &Commands) -> Result<()> {
+    let _space = Space::load("test".to_owned()).await?;
+
     match cmd {
         Commands::Test => println!("This is a test"),
     }

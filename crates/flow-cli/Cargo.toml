@@ -13,6 +13,7 @@ categories.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+flow-core = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 miette = { workspace = true }
