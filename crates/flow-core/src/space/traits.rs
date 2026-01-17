@@ -93,7 +93,7 @@ pub trait Space: Send + Sync {
     /// - The path already contains a space.
     /// - The directory cannot be created.
     /// - The configuration file cannot be written.
-    async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: &str) -> Result<Self>
+    async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: impl Into<String>) -> Result<Self>
     where
         Self: Sized;
 
