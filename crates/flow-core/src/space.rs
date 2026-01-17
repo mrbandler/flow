@@ -136,7 +136,7 @@ impl Space {
     /// # }
     /// ```
     #[must_use = "Space was initialized but never used"]
-    pub async fn init(path: impl AsRef<Path> + Send + Sync, name: &str) -> Result<Self> {
+    pub async fn init(path: impl AsRef<Path> + Send + Sync, name: impl Into<String>) -> Result<Self> {
         let fs = LocalFilesystem;
         let inner = DefaultSpace::init(fs, path, name).await?;
 

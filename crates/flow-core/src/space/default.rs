@@ -157,7 +157,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
     /// - The space metadata is serialized as JSON using [`serde_json`].
     /// - The Loro document is exported as a binary snapshot for efficiency.
     /// - All filesystem operations use the injected `fs` implementation.
-    async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: &str) -> Result<Self>
+    async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: impl Into<String>) -> Result<Self>
     where
         Self: Sized,
     {
@@ -183,7 +183,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
         fs.create_dir(&journal_dir).await?;
 
         let metadata = Metadata {
-            name: name.to_owned(),
+            name: name.into(),
             version: env!("CARGO_PKG_VERSION").to_string(),
         };
         let metadata_json = serde_json::to_string(&metadata).into_diagnostic()?;
