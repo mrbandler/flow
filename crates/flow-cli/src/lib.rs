@@ -1,10 +1,16 @@
 use clap::Subcommand;
-use flow_core::Space;
 use miette::Result;
+
+use crate::commands::{init, Command};
+
+mod commands;
+mod common;
+mod errors;
+mod extensions;
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Test,
+    Init(init::Arguments),
 }
 
 /// Run the CLI with the given command.
@@ -13,10 +19,8 @@ pub enum Commands {
 ///
 /// Returns an error if the command execution fails.
 pub async fn run(cmd: &Commands) -> Result<()> {
-    let _space = Space::load("test".to_owned()).await?;
-
     match cmd {
-        Commands::Test => println!("This is a test"),
+        Commands::Init(args) => init::Init::new(args.clone()).run().await?,
     }
 
     Ok(())
