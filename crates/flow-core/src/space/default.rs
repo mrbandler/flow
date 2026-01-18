@@ -117,7 +117,7 @@ const JOURNAL_DIR: &str = "journal";
 /// let mock_fs = MockFilesystem::new();
 /// let space = DefaultSpace::init(mock_fs, "./test-space", "test").await?;
 /// ```
-#[allow(dead_code)] // TODO: Remove once methods using these fields are implemented
+#[allow(dead_code)]
 pub struct DefaultSpace<F: Filesystem> {
     /// The filesystem implementation used for all I/O operations.
     ///
@@ -230,8 +230,8 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
 
         let flow_dir = path.join(FLOW_DIR);
         let metadata_path = flow_dir.join(METADATA_FILE);
-        let metadata_json = fs.read(&metadata_path).await?;
-        let metadata = serde_json::from_slice::<Metadata>(&metadata_json).into_diagnostic()?; // TODO: Create custom error for this?
+        let metadata_json = fs.read_to_string(&metadata_path).await?;
+        let metadata = serde_json::from_str::<Metadata>(&metadata_json).into_diagnostic()?; // TODO: Create custom error for this?
 
         let doc_path = flow_dir.join(DOCUMENT_FILE);
         let doc_snapshot = fs.read(&doc_path).await?;
