@@ -115,23 +115,7 @@ pub enum Error {
         url(docsrs),
         help("Make sure the directory exists before initializing a space")
     )]
-    PathNotFound(PathBuf),
-
-    /// The specified path is not a directory.
-    ///
-    /// This error occurs when a path exists but is a file rather than
-    /// a directory. Spaces can only be initialized in directories.
-    ///
-    /// # Error Code
-    ///
-    /// `flow::not_a_directory`
-    ///
-    /// # Fields
-    ///
-    /// * `0` - The path that is not a directory.
-    #[error("Path is not a directory: {0}")]
-    #[diagnostic(code(flow::not_a_directory), url(docsrs), help("Make sure the path is a directory"))]
-    NotADirectory(PathBuf),
+    NotFound(PathBuf),
 
     /// A space already exists at the specified path.
     ///
@@ -153,6 +137,22 @@ pub enum Error {
         help("Use `flow open` to open the existing space, or choose a different path")
     )]
     AlreadyExists(PathBuf),
+
+    /// The specified path is not a directory.
+    ///
+    /// This error occurs when a path exists but is a file rather than
+    /// a directory. Spaces can only be initialized in directories.
+    ///
+    /// # Error Code
+    ///
+    /// `flow::not_a_directory`
+    ///
+    /// # Fields
+    ///
+    /// * `0` - The path that is not a directory.
+    #[error("Path is not a directory: {0}")]
+    #[diagnostic(code(flow::not_a_directory), url(docsrs), help("Make sure the path is a directory"))]
+    NotADirectory(PathBuf),
 
     /// The directory is not empty.
     ///
