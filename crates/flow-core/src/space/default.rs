@@ -189,7 +189,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
             name: name.into(),
             version: env!("CARGO_PKG_VERSION").to_string(),
         };
-        let metadata_json = serde_json::to_string(&metadata).into_diagnostic()?;
+        let metadata_json = serde_json::to_string_pretty(&metadata).into_diagnostic()?;
         let metadata_path = flow_dir.join(METADATA_FILE);
         fs.write(&metadata_path, metadata_json.as_bytes()).await?;
 
