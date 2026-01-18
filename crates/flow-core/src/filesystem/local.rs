@@ -7,7 +7,7 @@
 use std::path::Path;
 
 use miette::Result;
-use tokio::fs::{create_dir, metadata, read, read_dir, try_exists, write};
+use tokio::fs::{create_dir, metadata, read, read_dir, read_to_string, try_exists, write};
 
 use crate::errors::Error;
 use crate::filesystem::traits::Filesystem;
@@ -104,6 +104,15 @@ impl Filesystem for LocalFilesystem {
     async fn read(&self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
         let path = path.as_ref();
         read(path).await.map_err(|e| Error::Io(e).into())
+    }
+
+    /// Reads the entire file contents using [`tokio::fs::read_to_string`].
+    ///
+    /// The entire file is read into memory. For large files, consider
+    /// using streaming APIs instead.
+    async fn read_to_string(&self, path: impl AsRef<Path>) -> Result<String> {
+        let path = path.as_ref();
+        read_to_string(path).await.map_err(|e| Error::Io(e).into())
     }
 }
 

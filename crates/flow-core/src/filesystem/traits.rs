@@ -112,6 +112,16 @@ pub trait Filesystem: Send + Sync {
     /// # Errors
     ///
     /// Returns an error if the file does not exist or cannot be read.
-    #[allow(dead_code)] // TODO: Remove once `Space::load` is implemented
     async fn read(&self, path: impl AsRef<Path>) -> Result<Vec<u8>>;
+
+    /// Reads the entire contents of a file into a string.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the file to read.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file does not exist or cannot be read.
+    async fn read_to_string(&self, path: impl AsRef<Path>) -> Result<String>;
 }
