@@ -17,7 +17,7 @@ default-theme = "navy"
 preferred-dark-theme = "navy"
 smart-punctuation = true
 git-repository-url = "https://github.com/mrbandler/flow"
-edit-url-template = "https://github.com/mrbandler/flow/edit/master/docs/{path}"
+edit-url-template = "https://github.com/mrbandler/flow/edit/main/docs/{path}"
 site-url = "/flow/"
 cname = ""
 
