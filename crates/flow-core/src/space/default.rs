@@ -37,7 +37,7 @@
 //! let space = DefaultSpace::init(fs, "./my-space", "personal").await?;
 //! ```
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use loro::LoroDoc;
 use miette::{ensure, IntoDiagnostic, Result};
@@ -125,6 +125,9 @@ pub struct DefaultSpace<F: Filesystem> {
     /// to be used in production vs. testing environments.
     fs: F,
 
+    /// Path of the space.
+    path: PathBuf,
+
     /// Metadata of the space.
     ///
     /// Contains the space name, version, and other identifying information.
@@ -195,7 +198,12 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
         let doc_path = flow_dir.join(DOCUMENT_FILE);
         fs.write(&doc_path, &doc_snapshot).await?;
 
-        Ok(Self { fs, metadata, doc })
+        Ok(Self {
+            fs,
+            path: path.to_path_buf(),
+            metadata,
+            doc,
+        })
     }
 
     /// Loads an existing space from the given locator.
@@ -211,21 +219,30 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
     /// # Unimplemented
     ///
     /// This method is not yet implemented and will panic if called.
-    async fn load(_fs: Self::Fs, _locator: Locator) -> Result<Self>
+    async fn load(fs: Self::Fs, locator: Locator) -> Result<Self>
     where
         Self: Sized,
     {
-        todo!();
+        let path = match locator {
+            Locator::Name(_name) => todo!("Look up the path through the name of the space"),
+            Locator::Path(path) => path,
+        };
 
-        // TODO: Implement space loading:
-        // 1. Resolve the locator to a path
-        // 2. Read and validate the space configuration
-        // 3. Initialize the space struct
+        let flow_dir = path.join(FLOW_DIR);
+        let metadata_path = flow_dir.join(METADATA_FILE);
+        let metadata_json = fs.read(&metadata_path).await?;
+        let metadata = serde_json::from_slice::<Metadata>(&metadata_json).into_diagnostic()?; // TODO: Create custom error for this?
 
-        // let doc = LoroDoc::new();
-        // let space = Self { fs, doc };
+        let doc_path = flow_dir.join(DOCUMENT_FILE);
+        let doc_snapshot = fs.read(&doc_path).await?;
+        let doc = LoroDoc::from_snapshot(&doc_snapshot).into_diagnostic()?; // TODO: Create custom error for this?
 
-        // Ok(space)
+        Ok(Self {
+            fs,
+            path,
+            metadata,
+            doc,
+        })
     }
 }
 
