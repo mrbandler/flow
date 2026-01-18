@@ -166,7 +166,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
     {
         let path = path.as_ref();
         let exists = fs.exists(path).await?;
-        ensure!(exists, Error::PathNotFound(path.to_path_buf()));
+        ensure!(exists, Error::NotFound(path.to_path_buf()));
 
         let is_dir = fs.is_dir(path).await?;
         ensure!(is_dir, Error::NotADirectory(path.to_path_buf()));
