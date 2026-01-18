@@ -60,7 +60,7 @@ use miette::Result;
 
 use crate::filesystem::LocalFilesystem;
 use crate::space::default::DefaultSpace;
-use crate::space::traits::Space as SpaceTrait;
+use crate::space::traits::Space as _;
 
 mod default;
 mod locator;
