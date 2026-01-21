@@ -1,22 +1,28 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use flow_core::Space;
+use flow_core::{Config, Space};
 use inquire::Text;
 use miette::IntoDiagnostic;
 use serde::Serialize;
 
-use crate::{commands::Command, common::GlobalArgs, errors::Error, extensions::PathExt};
+use crate::{commands::Command, common::OutputArgs, errors::Error, extensions::PathExt};
 
 #[derive(Args, Debug, Clone)]
 pub struct Arguments {
     #[command(flatten)]
-    pub global: GlobalArgs,
+    pub output: OutputArgs,
 
+    /// Path to initialize the space at
     pub path: Option<PathBuf>,
 
+    /// Name of the space (defaults to the directory name)
     #[arg(short, long)]
     pub name: Option<String>,
+
+    /// Flag, to not register the space
+    #[arg(long)]
+    pub no_register: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -37,13 +43,13 @@ impl Command for Init {
         Self { args }
     }
 
-    fn globals(&self) -> &GlobalArgs {
-        &self.args.global
+    fn output_args(&self) -> &OutputArgs {
+        &self.args.output
     }
 
     async fn interactive(&mut self) -> miette::Result<()> {
         if self.args.path.is_none() {
-            self.args.global.info("Entering interactive mode");
+            self.printer().info("Entering interactive mode");
 
             let path_input = Text::new("Path:")
                 .with_default(".")
@@ -81,21 +87,34 @@ impl Command for Init {
             .path
             .take()
             .ok_or_else(|| Error::MissingArgument("path".to_string()))?;
+
+        let path_name = path.file_name().and_then(|n| n.to_str());
         let name = self
             .args
             .name
             .take()
+            .or_else(|| path_name.map(String::from))
             .ok_or_else(|| Error::MissingArgument("name".to_string()))?;
 
-        let _ = Space::init(&path, &name).await?;
+        let space = Space::init(&path, &name).await?;
+        if !self.args.no_register {
+            let mut config = Config::load().await?;
+
+            config.register(&space).await?;
+            if config.active().is_none() {
+                config.set_active(space.name()).await?;
+            }
+        }
 
         Ok(Output { name, path })
     }
 
     fn finalize(&self, output: &Self::Output) {
-        self.globals().success("Graph initialized successfully");
-        self.globals().blank();
-        self.globals().kv("Name", &output.name);
-        self.globals().kv("Path", output.path.normalize());
+        let printer = self.printer();
+
+        printer.success("Space initialized");
+        printer.blank();
+        printer.kv("Name", &output.name);
+        printer.kv("Path", output.path.normalize());
     }
 }
