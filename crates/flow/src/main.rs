@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
         Some(Commands::Gui) => flow_gui::run().await?,
         #[cfg(feature = "server")]
         Some(Commands::Serve) => flow_server::run().await?,
-        Some(Commands::Cli(cmd)) => flow_cli::run(&cmd).await?,
+        Some(Commands::Cli(cmd)) => flow_cli::run(cmd).await?,
         None => {
             // TODO: Maybe later we can just launch the UI the user selected in the configuration.
 
