@@ -1,6 +1,6 @@
 use miette::Result;
 
-use crate::common::GlobalArgs;
+use crate::{common::OutputArgs, printer::Printer};
 
 pub mod init;
 
@@ -10,7 +10,11 @@ pub trait Command: Sized {
 
     fn new(args: Self::Args) -> Self;
 
-    fn globals(&self) -> &GlobalArgs;
+    fn output_args(&self) -> &OutputArgs;
+
+    fn printer(&self) -> Printer {
+        self.output_args().printer()
+    }
 
     async fn interactive(&mut self) -> Result<()>;
 
@@ -19,13 +23,13 @@ pub trait Command: Sized {
     fn finalize(&self, output: &Self::Output);
 
     async fn run(&mut self) -> Result<()> {
-        if !self.globals().json {
+        if !self.output_args().json {
             self.interactive().await?;
         }
 
         let output = self.execute().await?;
-        if self.globals().json {
-            self.globals().json(&output)?;
+        if self.output_args().json {
+            self.printer().json(&output)?;
         } else {
             self.finalize(&output);
         }

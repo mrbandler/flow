@@ -7,6 +7,7 @@ mod commands;
 mod common;
 mod errors;
 mod extensions;
+mod printer;
 
 #[derive(Subcommand)]
 pub enum Commands {

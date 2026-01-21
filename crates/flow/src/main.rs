@@ -28,10 +28,6 @@ fn version() -> &'static str {
 #[command(version = version())]
 #[command(about = "Flow - Note taking for developers")]
 struct Flow {
-    /// Space to use (registered name or path), falls back to registered default space if not set.
-    #[arg(short, long, global = true)]
-    space: Option<String>,
-
     /// Sub-commands.
     #[command(subcommand)]
     command: Option<Commands>,
