@@ -19,9 +19,9 @@ pub enum Commands {
 /// # Errors
 ///
 /// Returns an error if the command execution fails.
-pub async fn run(cmd: &Commands) -> Result<()> {
+pub async fn run(cmd: Commands) -> Result<()> {
     match cmd {
-        Commands::Init(args) => init::Init::new(args.clone()).run().await?,
+        Commands::Init(args) => init::Init::new(args).run().await?,
     }
 
     Ok(())
