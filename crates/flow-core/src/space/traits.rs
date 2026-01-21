@@ -55,7 +55,7 @@ use crate::{filesystem::Filesystem, space::locator::Locator};
 ///     }
 /// }
 /// ```
-pub trait Space: Send + Sync {
+pub trait Space: Sized + Send + Sync {
     /// The filesystem implementation used by this space.
     ///
     /// This associated type allows space implementations to be generic
@@ -93,9 +93,7 @@ pub trait Space: Send + Sync {
     /// - The path already contains a space.
     /// - The directory cannot be created.
     /// - The configuration file cannot be written.
-    async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: impl Into<String>) -> Result<Self>
-    where
-        Self: Sized;
+    async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: impl Into<String>) -> Result<Self>;
 
     /// Load an existing space from the given locator.
     ///
@@ -113,7 +111,5 @@ pub trait Space: Send + Sync {
     /// - The space cannot be found.
     /// - The space configuration is invalid or corrupted.
     /// - The filesystem cannot be read.
-    async fn load(fs: Self::Fs, locator: Locator) -> Result<Self>
-    where
-        Self: Sized;
+    async fn load(fs: Self::Fs, locator: Locator) -> Result<Self>;
 }

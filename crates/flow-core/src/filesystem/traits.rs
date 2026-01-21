@@ -85,6 +85,22 @@ pub trait Filesystem: Send + Sync {
     /// - Permission is denied.
     async fn create_dir(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()>;
 
+    /// Creates a new directory at the given path.
+    ///
+    /// The parent directory must already exist. This does create parent directories.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path where the directory should be created.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The parent directory does not exist.
+    /// - A file or directory already exists at the path.
+    /// - Permission is denied.
+    async fn create_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()>;
+
     /// Writes content to a file at the given path.
     ///
     /// Creates the file if it doesn't exist, or overwrites it if it does.
@@ -112,7 +128,7 @@ pub trait Filesystem: Send + Sync {
     /// # Errors
     ///
     /// Returns an error if the file does not exist or cannot be read.
-    async fn read(&self, path: impl AsRef<Path>) -> Result<Vec<u8>>;
+    async fn read(&self, path: impl AsRef<Path> + Send + Sync) -> Result<Vec<u8>>;
 
     /// Reads the entire contents of a file into a string.
     ///
@@ -123,5 +139,5 @@ pub trait Filesystem: Send + Sync {
     /// # Errors
     ///
     /// Returns an error if the file does not exist or cannot be read.
-    async fn read_to_string(&self, path: impl AsRef<Path>) -> Result<String>;
+    async fn read_to_string(&self, path: impl AsRef<Path> + Send + Sync) -> Result<String>;
 }

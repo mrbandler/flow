@@ -160,16 +160,15 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
     /// - The space metadata is serialized as JSON using [`serde_json`].
     /// - The Loro document is exported as a binary snapshot for efficiency.
     /// - All filesystem operations use the injected `fs` implementation.
-    async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: impl Into<String>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: impl Into<String>) -> Result<Self> {
         let path = path.as_ref();
         let exists = fs.exists(path).await?;
-        ensure!(exists, Error::NotFound(path.to_path_buf()));
-
-        let is_dir = fs.is_dir(path).await?;
-        ensure!(is_dir, Error::NotADirectory(path.to_path_buf()));
+        if exists {
+            let is_dir = fs.is_dir(path).await?;
+            ensure!(is_dir, Error::NotADirectory(path.to_path_buf()));
+        } else {
+            fs.create_dir_all(path).await?;
+        }
 
         let flow_dir = path.join(FLOW_DIR);
         let is_empty = fs.is_dir_empty(path).await?;
@@ -178,6 +177,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
             if has_space {
                 return Err(Error::AlreadyExists(path.to_path_buf()).into());
             }
+
             return Err(Error::DirectoryNotEmpty(path.to_path_buf()).into());
         }
 
@@ -219,10 +219,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
     /// # Unimplemented
     ///
     /// This method is not yet implemented and will panic if called.
-    async fn load(fs: Self::Fs, locator: Locator) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    async fn load(fs: Self::Fs, locator: Locator) -> Result<Self> {
         let path = match locator {
             Locator::Name(_name) => todo!("Look up the path through the name of the space"),
             Locator::Path(path) => path,
