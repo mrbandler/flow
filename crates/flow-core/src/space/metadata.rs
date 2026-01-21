@@ -16,6 +16,8 @@
 //! allowing future versions of Flow to add new fields without breaking
 //! existing spaces.
 
+use std::borrow::Cow;
+
 use serde::{Deserialize, Serialize};
 
 /// Metadata about a Flow space.
@@ -76,5 +78,5 @@ pub struct Metadata {
     /// The version of Flow that created this space.
     ///
     /// This can be used for future migrations if the space format changes.
-    pub version: String,
+    pub version: Cow<'static, str>,
 }

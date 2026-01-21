@@ -37,7 +37,10 @@
 //! let space = DefaultSpace::init(fs, "./my-space", "personal").await?;
 //! ```
 
-use std::path::{Path, PathBuf};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
 
 use loro::LoroDoc;
 use miette::{ensure, IntoDiagnostic, Result};
@@ -187,7 +190,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
 
         let metadata = Metadata {
             name: name.into(),
-            version: env!("CARGO_PKG_VERSION").to_string(),
+            version: Cow::Borrowed(env!("CARGO_PKG_VERSION")),
         };
         let metadata_json = serde_json::to_string_pretty(&metadata).into_diagnostic()?;
         let metadata_path = flow_dir.join(METADATA_FILE);
