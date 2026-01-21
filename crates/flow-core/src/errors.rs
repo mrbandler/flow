@@ -25,7 +25,7 @@
 //! use std::path::PathBuf;
 //!
 //! // Errors can be created directly
-//! let error = Error::PathNotFound(PathBuf::from("/nonexistent/path"));
+//! let error = Error::NotFound(PathBuf::from("/nonexistent/path"));
 //!
 //! // They implement Display for human-readable messages
 //! println!("Error: {}", error);
@@ -49,7 +49,7 @@ use crate::space::Locator;
 /// | Variant | Error Code | Description |
 /// |---------|------------|-------------|
 /// | [`Io`](Error::Io) | `flow::io_error` | Low-level filesystem errors |
-/// | [`PathNotFound`](Error::PathNotFound) | `flow::path_not_found` | Path does not exist |
+/// | [`NotFound`](Error::NotFound) | `flow::path_not_found` | Path does not exist |
 /// | [`NotADirectory`](Error::NotADirectory) | `flow::not_a_directory` | Path is not a directory |
 /// | [`AlreadyExists`](Error::AlreadyExists) | `flow::already_exists` | Space already exists |
 /// | [`DirectoryNotEmpty`](Error::DirectoryNotEmpty) | `flow::directory_not_empty` | Directory has contents |
@@ -64,7 +64,7 @@ use crate::space::Locator;
 ///
 /// fn handle_error(error: Error) {
 ///     match error {
-///         Error::PathNotFound(path) => {
+///         Error::NotFound(path) => {
 ///             eprintln!("Path not found: {}", path.display());
 ///         }
 ///         Error::AlreadyExists(path) => {
