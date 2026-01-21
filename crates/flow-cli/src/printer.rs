@@ -29,39 +29,39 @@ impl Printer {
         self.json
     }
 
-    pub fn print(&self, message: impl Into<String>) {
+    pub fn print(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = Term::stdout().write_line(message.into().as_str());
+            let _ = Term::stdout().write_line(message.as_ref());
         }
     }
 
-    pub fn success(&self, message: impl Into<String>) {
+    pub fn success(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = Term::stdout().write_line(&format!("{}{}", SUCCESS, style(message.into()).green().bold()));
+            let _ = Term::stdout().write_line(&format!("{}{}", SUCCESS, style(message.as_ref()).green().bold()));
         }
     }
 
-    pub fn info(&self, message: impl Into<String>) {
+    pub fn info(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = Term::stdout().write_line(&format!("{}{}", INFO, style(message.into()).cyan()));
+            let _ = Term::stdout().write_line(&format!("{}{}", INFO, style(message.as_ref()).cyan()));
         }
     }
 
-    pub fn warning(&self, message: impl Into<String>) {
+    pub fn warning(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = Term::stdout().write_line(&format!("{}{}", WARN, style(message.into()).yellow().bold()));
+            let _ = Term::stdout().write_line(&format!("{}{}", WARN, style(message.as_ref()).yellow().bold()));
         }
     }
 
-    pub fn step(&self, message: impl Into<String>) {
+    pub fn step(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = Term::stdout().write_line(&format!("{}{}", ARROW, style(message.into()).dim()));
+            let _ = Term::stdout().write_line(&format!("{}{}", ARROW, style(message.as_ref()).dim()));
         }
     }
 
-    pub fn verbose(&self, message: impl Into<String>) {
+    pub fn verbose(&self, message: impl AsRef<str>) {
         if self.verbose && !self.quiet && !self.json {
-            let _ = Term::stdout().write_line(&format!("{}{}", DEBUG, style(message.into()).dim()));
+            let _ = Term::stdout().write_line(&format!("{}{}", DEBUG, style(message.as_ref()).dim()));
         }
     }
 
@@ -76,9 +76,9 @@ impl Printer {
         }
     }
 
-    pub fn error(&self, message: impl Into<String>) {
+    pub fn error(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = Term::stderr().write_line(&format!("{}{}", ERROR, style(message.into()).red().bold()));
+            let _ = Term::stderr().write_line(&format!("{}{}", ERROR, style(message.as_ref()).red().bold()));
         }
     }
 
