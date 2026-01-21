@@ -241,6 +241,14 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
             doc,
         })
     }
+
+    fn name(&self) -> &str {
+        &self.metadata.name
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 #[cfg(test)]

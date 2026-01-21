@@ -186,6 +186,51 @@ impl Space {
 
         Ok(Self { inner })
     }
+
+    /// Returns the name of the space.
+    ///
+    /// The name is a human-readable identifier for the space, set during
+    /// initialization. It is used for display purposes and can be used
+    /// to look up the space in the registry.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::path::Path;
+    /// use flow_core::Space;
+    ///
+    /// # async fn example() -> miette::Result<()> {
+    /// let space = Space::init(Path::new("./my-notes"), "personal").await?;
+    /// assert_eq!(space.name(), "personal");
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    /// Returns the filesystem path to the space directory.
+    ///
+    /// This is the root directory containing the `.flow/` subdirectory
+    /// and all space content.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::path::Path;
+    /// use flow_core::Space;
+    ///
+    /// # async fn example() -> miette::Result<()> {
+    /// let space = Space::init(Path::new("./my-notes"), "personal").await?;
+    /// assert_eq!(space.path(), Path::new("./my-notes"));
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        self.inner.path()
+    }
 }
 
 #[cfg(test)]

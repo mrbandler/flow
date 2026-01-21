@@ -334,6 +334,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
 
 [[package]]
+name = "cross-xdg"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd89fbf9e0d3bf9c91e17c09fd875857f9d71c3cbe29ae2ab253edd080b17ce5"
+
+[[package]]
 name = "crossterm"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -605,6 +611,7 @@ dependencies = [
 name = "flow-core"
 version = "0.1.0"
 dependencies = [
+ "cross-xdg",
  "loro",
  "miette",
  "serde",
@@ -1790,7 +1797,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

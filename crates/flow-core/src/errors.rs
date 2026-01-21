@@ -36,6 +36,8 @@ use std::path::PathBuf;
 use miette::Diagnostic;
 use thiserror::Error;
 
+use crate::space::Locator;
+
 /// Errors that can occur when working with spaces.
 ///
 /// This enum covers all error conditions that may arise during space
@@ -174,4 +176,64 @@ pub enum Error {
         help("Initialize a space in an empty directory, or use a different path")
     )]
     DirectoryNotEmpty(PathBuf),
+
+    /// A space with the given name is already registered.
+    ///
+    /// This error occurs when attempting to register a space with a name
+    /// that is already in use by another registered space.
+    ///
+    /// # Error Code
+    ///
+    /// `flow::space_already_registered`
+    ///
+    /// # Fields
+    ///
+    /// * `0` - The name that is already registered.
+    #[error("A space with the name '{0}' is already registered")]
+    #[diagnostic(
+        code(flow::space_already_registered),
+        url(docsrs),
+        help("Use a different name, or unregister the existing space first")
+    )]
+    SpaceAlreadyRegistered(String),
+
+    /// A space at the given path is already registered.
+    ///
+    /// This error occurs when attempting to register a space at a path
+    /// that is already registered under a different name.
+    ///
+    /// # Error Code
+    ///
+    /// `flow::space_path_already_registered`
+    ///
+    /// # Fields
+    ///
+    /// * `0` - The path that is already registered.
+    #[error("A space at path '{0}' is already registered")]
+    #[diagnostic(
+        code(flow::space_path_already_registered),
+        url(docsrs),
+        help("This space is already registered under a different name")
+    )]
+    SpacePathAlreadyRegistered(PathBuf),
+
+    /// The specified space is not registered.
+    ///
+    /// This error occurs when attempting to operate on a space that
+    /// has not been registered in the configuration.
+    ///
+    /// # Error Code
+    ///
+    /// `flow::space_not_registered`
+    ///
+    /// # Fields
+    ///
+    /// * `0` - The locator used to find the space.
+    #[error("Space not registered: {0}")]
+    #[diagnostic(
+        code(flow::space_not_registered),
+        url(docsrs),
+        help("Register the space first with `flow register`")
+    )]
+    SpaceNotRegistered(Locator),
 }

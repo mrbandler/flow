@@ -91,9 +91,11 @@
 
 mod filesystem;
 
+mod config;
 mod errors;
 mod space;
 
+pub use self::config::Config;
 pub use self::errors::Error;
 pub use self::space::Locator;
 pub use self::space::Space;
