@@ -7,7 +7,7 @@
 use std::path::Path;
 
 use miette::Result;
-use tokio::fs::{create_dir, metadata, read, read_dir, read_to_string, try_exists, write};
+use tokio::fs::{create_dir, create_dir_all, metadata, read, read_dir, read_to_string, try_exists, write};
 
 use crate::errors::Error;
 use crate::filesystem::traits::Filesystem;
@@ -83,6 +83,14 @@ impl Filesystem for LocalFilesystem {
         create_dir(&path).await.map_err(|e| Error::Io(e).into())
     }
 
+    /// Creates a directory using [`tokio::fs::create_dir_all`].
+    ///
+    /// This does create parent directories. Use this only when
+    /// the parent directory is known to exist.
+    async fn create_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
+        create_dir_all(&path).await.map_err(|e| Error::Io(e).into())
+    }
+
     /// Writes content to a file using [`tokio::fs::write`].
     ///
     /// This operation is atomic on most platforms — the file is either
@@ -101,7 +109,7 @@ impl Filesystem for LocalFilesystem {
     ///
     /// The entire file is read into memory. For large files, consider
     /// using streaming APIs instead.
-    async fn read(&self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
+    async fn read(&self, path: impl AsRef<Path> + Send + Sync) -> Result<Vec<u8>> {
         let path = path.as_ref();
         read(path).await.map_err(|e| Error::Io(e).into())
     }
@@ -110,7 +118,7 @@ impl Filesystem for LocalFilesystem {
     ///
     /// The entire file is read into memory. For large files, consider
     /// using streaming APIs instead.
-    async fn read_to_string(&self, path: impl AsRef<Path>) -> Result<String> {
+    async fn read_to_string(&self, path: impl AsRef<Path> + Send + Sync) -> Result<String> {
         let path = path.as_ref();
         read_to_string(path).await.map_err(|e| Error::Io(e).into())
     }
