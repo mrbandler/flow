@@ -112,4 +112,31 @@ pub trait Space: Sized + Send + Sync {
     /// - The space configuration is invalid or corrupted.
     /// - The filesystem cannot be read.
     async fn load(fs: Self::Fs, locator: Locator) -> Result<Self>;
+
+    /// Returns the name of the space.
+    ///
+    /// The name is a human-readable identifier for the space, set during
+    /// initialization. It is used for display purposes and can be used
+    /// to look up the space in the registry.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let space = DefaultSpace::init(fs, "./my-space", "personal").await?;
+    /// assert_eq!(space.name(), "personal");
+    /// ```
+    fn name(&self) -> &str;
+
+    /// Returns the filesystem path to the space directory.
+    ///
+    /// This is the root directory containing the `.flow/` subdirectory
+    /// and all space content.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let space = DefaultSpace::init(fs, "./my-space", "personal").await?;
+    /// assert_eq!(space.path(), Path::new("./my-space"));
+    /// ```
+    fn path(&self) -> &Path;
 }

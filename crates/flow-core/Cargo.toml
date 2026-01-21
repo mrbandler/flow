@@ -19,6 +19,7 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 loro = "1.10.3"
+cross-xdg = "2.1"
 
 [lints]
 workspace = true

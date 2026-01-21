@@ -20,6 +20,7 @@
 //! - `String` and `&str` are interpreted as space names.
 //! - `PathBuf` and `&Path` are interpreted as filesystem paths.
 
+use std::fmt;
 use std::path::{Path, PathBuf};
 
 /// A way to locate a [`Space`](super::Space).
@@ -75,82 +76,40 @@ pub enum Locator {
 }
 
 impl From<String> for Locator {
-    /// Converts a [`String`] into a [`Locator::Name`].
-    ///
-    /// # Arguments
-    ///
-    /// * `s` - The space name to convert.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use flow_core::Locator;
-    ///
-    /// let locator: Locator = String::from("personal").into();
-    /// assert_eq!(locator, Locator::Name("personal".to_string()));
-    /// ```
     fn from(s: String) -> Self {
         Self::Name(s)
     }
 }
 
+impl From<&String> for Locator {
+    fn from(s: &String) -> Self {
+        Self::Name(s.clone())
+    }
+}
+
 impl From<&str> for Locator {
-    /// Converts a string slice into a [`Locator::Name`].
-    ///
-    /// # Arguments
-    ///
-    /// * `s` - The space name to convert.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use flow_core::Locator;
-    ///
-    /// let locator: Locator = "work".into();
-    /// assert_eq!(locator, Locator::Name("work".to_string()));
-    /// ```
     fn from(s: &str) -> Self {
         Self::Name(s.to_owned())
     }
 }
 
 impl From<PathBuf> for Locator {
-    /// Converts a [`PathBuf`] into a [`Locator::Path`].
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The filesystem path to convert.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::path::PathBuf;
-    /// use flow_core::Locator;
-    ///
-    /// let locator: Locator = PathBuf::from("/home/user/notes").into();
-    /// assert_eq!(locator, Locator::Path(PathBuf::from("/home/user/notes")));
-    /// ```
     fn from(path: PathBuf) -> Self {
         Self::Path(path)
     }
 }
 
 impl From<&Path> for Locator {
-    /// Converts a [`Path`] reference into a [`Locator::Path`].
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The filesystem path to convert.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::path::Path;
-    /// use flow_core::Locator;
-    ///
-    /// let locator: Locator = Path::new("/home/user/notes").into();
-    /// ```
     fn from(path: &Path) -> Self {
         Self::Path(path.to_path_buf())
+    }
+}
+
+impl fmt::Display for Locator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Name(name) => write!(f, "{name}"),
+            Self::Path(path) => write!(f, "{}", path.display()),
+        }
     }
 }
