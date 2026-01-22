@@ -46,9 +46,9 @@ use loro::LoroDoc;
 use miette::{ensure, IntoDiagnostic, Result};
 
 use crate::{
-    errors::Error,
     filesystem::Filesystem,
     space::{traits::Space, Locator, Metadata},
+    SpaceError,
 };
 
 /// The directory name where Flow stores space metadata.
@@ -168,7 +168,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
         let exists = fs.exists(path).await?;
         if exists {
             let is_dir = fs.is_dir(path).await?;
-            ensure!(is_dir, Error::NotADirectory(path.to_path_buf()));
+            ensure!(is_dir, SpaceError::NotADirectory(path.to_path_buf()));
         } else {
             fs.create_dir_all(path).await?;
         }
@@ -178,10 +178,10 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
         if !is_empty {
             let has_space = fs.exists(&flow_dir).await?;
             if has_space {
-                return Err(Error::AlreadyExists(path.to_path_buf()).into());
+                return Err(SpaceError::AlreadyExists(path.to_path_buf()).into());
             }
 
-            return Err(Error::DirectoryNotEmpty(path.to_path_buf()).into());
+            return Err(SpaceError::DirectoryNotEmpty(path.to_path_buf()).into());
         }
 
         let journal_dir = path.join(JOURNAL_DIR);

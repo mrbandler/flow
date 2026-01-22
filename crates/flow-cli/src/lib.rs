@@ -5,7 +5,6 @@ use crate::commands::{init, Command};
 
 mod commands;
 mod common;
-mod errors;
 mod extensions;
 mod printer;
 

@@ -1,42 +1,13 @@
-//! Error types for flow-core operations.
+//! Error types for space operations.
 //!
-//! This module defines the error types used throughout the crate.
+//! This module defines the error types used when working with Flow spaces.
 //! Errors use [`miette`] for rich diagnostic output with error codes,
 //! help text, and source code context.
-//!
-//! # Overview
-//!
-//! The [`Error`] enum represents all possible errors that can occur when
-//! working with Flow spaces and filesystems. Each variant includes:
-//!
-//! - A human-readable error message
-//! - A unique error code (e.g., `flow::io_error`)
-//! - Contextual help text to guide users toward a solution
-//!
-//! # Error Handling
-//!
-//! All errors in this crate are compatible with [`miette`]'s diagnostic
-//! system, which provides rich error reporting in CLI applications.
-//!
-//! # Examples
-//!
-//! ```
-//! use flow_core::Error;
-//! use std::path::PathBuf;
-//!
-//! // Errors can be created directly
-//! let error = Error::NotFound(PathBuf::from("/nonexistent/path"));
-//!
-//! // They implement Display for human-readable messages
-//! println!("Error: {}", error);
-//! ```
 
 use std::path::PathBuf;
 
 use miette::Diagnostic;
 use thiserror::Error;
-
-use crate::space::Locator;
 
 /// Errors that can occur when working with spaces.
 ///
@@ -48,26 +19,28 @@ use crate::space::Locator;
 ///
 /// | Variant | Error Code | Description |
 /// |---------|------------|-------------|
-/// | [`Io`](Error::Io) | `flow::io_error` | Low-level filesystem errors |
-/// | [`NotFound`](Error::NotFound) | `flow::path_not_found` | Path does not exist |
-/// | [`NotADirectory`](Error::NotADirectory) | `flow::not_a_directory` | Path is not a directory |
-/// | [`AlreadyExists`](Error::AlreadyExists) | `flow::already_exists` | Space already exists |
-/// | [`DirectoryNotEmpty`](Error::DirectoryNotEmpty) | `flow::directory_not_empty` | Directory has contents |
+/// | [`NotFound`](SpaceError::NotFound) | `flow::path_not_found` | Path does not exist |
+/// | [`NotADirectory`](SpaceError::NotADirectory) | `flow::not_a_directory` | Path is not a directory |
+/// | [`AlreadyExists`](SpaceError::AlreadyExists) | `flow::already_exists` | Space already exists |
+/// | [`DirectoryNotEmpty`](SpaceError::DirectoryNotEmpty) | `flow::directory_not_empty` | Directory has contents |
+/// | [`SpaceAlreadyRegistered`](SpaceError::SpaceAlreadyRegistered) | `flow::space_already_registered` | Name already in use |
+/// | [`SpacePathAlreadyRegistered`](SpaceError::SpacePathAlreadyRegistered) | `flow::space_path_already_registered` | Path already registered |
+/// | [`SpaceNotRegistered`](SpaceError::SpaceNotRegistered) | `flow::space_not_registered` | Space not found in config |
 ///
 /// # Examples
 ///
 /// Matching on specific error variants:
 ///
 /// ```
-/// use flow_core::Error;
+/// use flow_errors::SpaceError;
 /// use std::path::PathBuf;
 ///
-/// fn handle_error(error: Error) {
+/// fn handle_error(error: SpaceError) {
 ///     match error {
-///         Error::NotFound(path) => {
+///         SpaceError::NotFound(path) => {
 ///             eprintln!("Path not found: {}", path.display());
 ///         }
-///         Error::AlreadyExists(path) => {
+///         SpaceError::AlreadyExists(path) => {
 ///             eprintln!("Space already exists at: {}", path.display());
 ///         }
 ///         _ => eprintln!("An error occurred: {}", error),
@@ -75,30 +48,7 @@ use crate::space::Locator;
 /// }
 /// ```
 #[derive(Debug, Error, Diagnostic)]
-pub enum Error {
-    /// A filesystem operation failed.
-    ///
-    /// This variant wraps low-level I/O errors from the operating system,
-    /// such as permission denied, disk full, or network errors when
-    /// accessing remote filesystems.
-    ///
-    /// # Error Code
-    ///
-    /// `flow::io_error`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use flow_core::Error;
-    /// use std::io;
-    ///
-    /// let io_error = io::Error::new(io::ErrorKind::PermissionDenied, "access denied");
-    /// let error: Error = io_error.into();
-    /// ```
-    #[error("Filesystem error: {0}")]
-    #[diagnostic(code(flow::io_error))]
-    Io(#[from] std::io::Error),
-
+pub enum SpaceError {
     /// The specified path does not exist.
     ///
     /// This error occurs when attempting to initialize or load a space
@@ -184,7 +134,7 @@ pub enum Error {
     ///
     /// # Error Code
     ///
-    /// `flow::space_already_registered`
+    /// `flow::already_registered`
     ///
     /// # Fields
     ///
@@ -195,7 +145,7 @@ pub enum Error {
         url(docsrs),
         help("Use a different name, or unregister the existing space first")
     )]
-    SpaceAlreadyRegistered(String),
+    AlreadyRegistered(String),
 
     /// A space at the given path is already registered.
     ///
@@ -211,11 +161,11 @@ pub enum Error {
     /// * `0` - The path that is already registered.
     #[error("A space at path '{0}' is already registered")]
     #[diagnostic(
-        code(flow::space_path_already_registered),
+        code(flow::path_already_registered),
         url(docsrs),
         help("This space is already registered under a different name")
     )]
-    SpacePathAlreadyRegistered(PathBuf),
+    PathAlreadyRegistered(PathBuf),
 
     /// The specified space is not registered.
     ///
@@ -228,12 +178,12 @@ pub enum Error {
     ///
     /// # Fields
     ///
-    /// * `0` - The locator used to find the space.
+    /// * `0` - The locator used to find the space (as a string).
     #[error("Space not registered: {0}")]
     #[diagnostic(
-        code(flow::space_not_registered),
+        code(flow::not_registered),
         url(docsrs),
         help("Register the space first with `flow register`")
     )]
-    SpaceNotRegistered(Locator),
+    NotRegistered(String),
 }

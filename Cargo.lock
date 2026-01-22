@@ -599,11 +599,11 @@ dependencies = [
  "clap",
  "console",
  "flow-core",
+ "flow-errors",
  "inquire",
  "miette",
  "serde",
  "serde_json",
- "thiserror 2.0.17",
  "tokio",
 ]
 
@@ -612,12 +612,20 @@ name = "flow-core"
 version = "0.1.0"
 dependencies = [
  "cross-xdg",
+ "flow-errors",
  "loro",
  "miette",
  "serde",
  "serde_json",
- "thiserror 2.0.17",
  "tokio",
+]
+
+[[package]]
+name = "flow-errors"
+version = "0.1.0"
+dependencies = [
+ "miette",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
