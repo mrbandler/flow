@@ -1,3 +1,22 @@
+//! The `init` command for creating new Flow spaces.
+//!
+//! This module implements the `flow init` command, which initializes a new
+//! Flow space at a specified path. The command supports both interactive
+//! and non-interactive modes.
+//!
+//! # Examples
+//!
+//! ```bash
+//! # Interactive mode - prompts for path and name
+//! flow init
+//!
+//! # Non-interactive with arguments
+//! flow init ./my-notes --name personal
+//!
+//! # JSON output for scripting
+//! flow init ./my-notes --name personal --json
+//! ```
+
 use std::path::PathBuf;
 
 use clap::Args;
@@ -10,6 +29,7 @@ use crate::{commands::Command, common::OutputArgs};
 use flow_common::PathExt;
 use flow_errors::CliError;
 
+/// Command-line arguments for the `init` command.
 #[derive(Args, Debug, Clone)]
 pub struct Arguments {
     #[command(flatten)]
@@ -27,12 +47,16 @@ pub struct Arguments {
     pub no_register: bool,
 }
 
+/// Output of a successful `init` command.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Output {
+    /// The name assigned to the space.
     pub name: String,
+    /// The filesystem path where the space was created.
     pub path: PathBuf,
 }
 
+/// The `init` command implementation.
 pub struct Init {
     args: Arguments,
 }

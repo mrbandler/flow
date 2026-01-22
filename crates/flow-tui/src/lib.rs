@@ -7,7 +7,7 @@ use miette::Result;
 /// # Errors
 ///
 /// Returns an error if the TUI fails to initialize or encounters
-/// a unrecoverable runtime error during execution.
+/// an unrecoverable runtime error during execution.
 pub async fn run() -> Result<()> {
     todo!("Running TUI");
 }

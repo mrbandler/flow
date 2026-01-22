@@ -6,7 +6,7 @@ use miette::Result;
 ///
 /// # Errors
 ///
-/// Returns an error if the GUI fails to initialize or encounters a unrecoverable runtime error.
+/// Returns an error if the GUI fails to initialize or encounters an unrecoverable runtime error.
 pub async fn run() -> Result<()> {
     todo!("Running GUI");
 }

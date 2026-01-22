@@ -1,7 +1,17 @@
+//! Flow - Note taking for developers.
+//!
+//! This is the main entry point for the Flow application. It provides a unified
+//! binary that can operate in multiple modes:
+//!
+//! - **CLI** (default) - Command-line interface for space and note management
+//! - **TUI** - Terminal user interface (with `tui` feature)
+//! - **GUI** - Desktop graphical interface (with `gui` feature)
+//! - **Server** - HTTP server mode (with `server` feature)
+
 use clap::{CommandFactory, Parser, Subcommand};
 use miette::{IntoDiagnostic, Result};
 
-/// Build the version string with compiled features.
+/// Builds the version string, appending enabled feature flags.
 fn version() -> &'static str {
     let version = env!("CARGO_PKG_VERSION");
     let features: &[&str] = &[
@@ -22,26 +32,30 @@ fn version() -> &'static str {
     }
 }
 
-/// Commands for the fat binary.
+/// Top-level CLI argument parser.
 #[derive(Parser)]
 #[command(name = "flow")]
 #[command(version = version())]
 #[command(about = "Flow - Note taking for developers")]
 struct Flow {
-    /// Sub-commands.
+    /// The subcommand to execute.
     #[command(subcommand)]
     command: Option<Commands>,
 }
 
-/// Sub-commands.
+/// Available subcommands for the Flow binary.
 #[derive(Subcommand)]
 enum Commands {
+    /// Launch the terminal user interface.
     #[cfg(feature = "tui")]
     Tui,
+    /// Launch the desktop graphical interface.
     #[cfg(feature = "gui")]
     Gui,
+    /// Start the HTTP server.
     #[cfg(feature = "server")]
     Serve,
+    /// CLI commands (init, etc.).
     #[command(flatten)]
     Cli(flow_cli::Commands),
 }

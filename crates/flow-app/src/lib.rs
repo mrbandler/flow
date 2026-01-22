@@ -1,16 +1,9 @@
-/// Adds two numbers together.
-#[must_use]
-pub const fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+//! Flow application layer.
+//!
+//! This crate provides the high-level application logic for Flow, coordinating
+//! between the core library and the various frontends (CLI, TUI, GUI, server).
+//!
+//! # Status
+//!
+//! This crate is currently a placeholder and will be implemented as the
+//! application layer matures.
