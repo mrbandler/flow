@@ -44,6 +44,8 @@ allow = [
 # must make their source code available to users (see AGPL Section 13).
 exceptions = [
     { name = "flow", allow = ["AGPL-3.0-or-later"] },
+    { name = "flow-errors", allow = ["AGPL-3.0-or-later"] },
+    { name = "flow-common", allow = ["AGPL-3.0-or-later"] },
     { name = "flow-app", allow = ["AGPL-3.0-or-later"] },
     { name = "flow-cli", allow = ["AGPL-3.0-or-later"] },
     { name = "flow-core", allow = ["AGPL-3.0-or-later"] },
