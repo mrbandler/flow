@@ -3,7 +3,8 @@ use flow_core::{Config, Space};
 use miette::Result;
 use std::path::PathBuf;
 
-use crate::{errors::Error, printer::Printer};
+use crate::printer::Printer;
+use flow_errors::CliError;
 
 /// Output formatting arguments - available for ALL commands.
 #[derive(Args, Debug, Clone)]
@@ -74,7 +75,7 @@ impl SpaceArgs {
             .as_ref()
             .and_then(|n| config.find(n))
             .or_else(|| config.active())
-            .ok_or(Error::NoActiveSpace)?;
+            .ok_or(CliError::NoActiveSpace)?;
 
         Space::load(&space.name).await
     }

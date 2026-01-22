@@ -6,7 +6,8 @@ use inquire::Text;
 use miette::IntoDiagnostic;
 use serde::Serialize;
 
-use crate::{commands::Command, common::OutputArgs, errors::Error, extensions::PathExt};
+use crate::{commands::Command, common::OutputArgs, extensions::PathExt};
+use flow_errors::CliError;
 
 #[derive(Args, Debug, Clone)]
 pub struct Arguments {
@@ -86,7 +87,7 @@ impl Command for Init {
             .args
             .path
             .take()
-            .ok_or_else(|| Error::MissingArgument("path".to_string()))?;
+            .ok_or_else(|| CliError::MissingArgument("path".to_string()))?;
 
         let path_name = path.file_name().and_then(|n| n.to_str());
         let name = self
@@ -94,7 +95,7 @@ impl Command for Init {
             .name
             .take()
             .or_else(|| path_name.map(String::from))
-            .ok_or_else(|| Error::MissingArgument("name".to_string()))?;
+            .ok_or_else(|| CliError::MissingArgument("name".to_string()))?;
 
         let space = Space::init(&path, &name).await?;
         if !self.args.no_register {

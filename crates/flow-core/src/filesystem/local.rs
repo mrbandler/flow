@@ -9,8 +9,8 @@ use std::path::Path;
 use miette::Result;
 use tokio::fs::{create_dir, create_dir_all, metadata, read, read_dir, read_to_string, try_exists, write};
 
-use crate::errors::Error;
 use crate::filesystem::traits::Filesystem;
+use crate::IoError;
 
 /// A [`Filesystem`] implementation that operates on the local filesystem.
 ///
@@ -47,7 +47,7 @@ impl Filesystem for LocalFilesystem {
     /// This is a non-blocking operation that queries the filesystem
     /// asynchronously.
     async fn exists(&self, path: impl AsRef<Path> + Send + Sync) -> Result<bool> {
-        try_exists(&path).await.map_err(|e| Error::Io(e).into())
+        try_exists(&path).await.map_err(|e| IoError(e).into())
     }
 
     /// Checks if a path is a directory using [`tokio::fs::metadata`].
@@ -55,7 +55,7 @@ impl Filesystem for LocalFilesystem {
     /// Returns an error if the path does not exist, unlike [`exists`](Self::exists)
     /// which returns `false` for non-existent paths.
     async fn is_dir(&self, path: impl AsRef<Path> + Send + Sync) -> Result<bool> {
-        let metadata = metadata(&path).await.map_err(Error::Io)?;
+        let metadata = metadata(&path).await.map_err(IoError)?;
 
         Ok(metadata.is_dir())
     }
@@ -69,8 +69,8 @@ impl Filesystem for LocalFilesystem {
             return Ok(false);
         }
 
-        let mut entries = read_dir(&path).await.map_err(Error::Io)?;
-        let is_empty = entries.next_entry().await.map_err(Error::Io)?.is_none();
+        let mut entries = read_dir(&path).await.map_err(IoError)?;
+        let is_empty = entries.next_entry().await.map_err(IoError)?.is_none();
 
         Ok(is_empty)
     }
@@ -80,7 +80,7 @@ impl Filesystem for LocalFilesystem {
     /// This does **not** create parent directories. Use this only when
     /// the parent directory is known to exist.
     async fn create_dir(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
-        create_dir(&path).await.map_err(|e| Error::Io(e).into())
+        create_dir(&path).await.map_err(|e| IoError(e).into())
     }
 
     /// Creates a directory using [`tokio::fs::create_dir_all`].
@@ -88,7 +88,7 @@ impl Filesystem for LocalFilesystem {
     /// This does create parent directories. Use this only when
     /// the parent directory is known to exist.
     async fn create_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
-        create_dir_all(&path).await.map_err(|e| Error::Io(e).into())
+        create_dir_all(&path).await.map_err(|e| IoError(e).into())
     }
 
     /// Writes content to a file using [`tokio::fs::write`].
@@ -100,9 +100,7 @@ impl Filesystem for LocalFilesystem {
         path: impl AsRef<Path> + Send + Sync,
         contents: impl AsRef<[u8]> + Send + Sync,
     ) -> Result<()> {
-        write(&path, &contents)
-            .await
-            .map_err(|e| Error::Io(e).into())
+        write(&path, &contents).await.map_err(|e| IoError(e).into())
     }
 
     /// Reads the entire file contents using [`tokio::fs::read`].
@@ -111,7 +109,7 @@ impl Filesystem for LocalFilesystem {
     /// using streaming APIs instead.
     async fn read(&self, path: impl AsRef<Path> + Send + Sync) -> Result<Vec<u8>> {
         let path = path.as_ref();
-        read(path).await.map_err(|e| Error::Io(e).into())
+        read(path).await.map_err(|e| IoError(e).into())
     }
 
     /// Reads the entire file contents using [`tokio::fs::read_to_string`].
@@ -120,7 +118,7 @@ impl Filesystem for LocalFilesystem {
     /// using streaming APIs instead.
     async fn read_to_string(&self, path: impl AsRef<Path> + Send + Sync) -> Result<String> {
         let path = path.as_ref();
-        read_to_string(path).await.map_err(|e| Error::Io(e).into())
+        read_to_string(path).await.map_err(|e| IoError(e).into())
     }
 }
 

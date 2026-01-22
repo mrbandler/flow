@@ -13,9 +13,9 @@ categories.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+flow-errors = { workspace = true }
 tokio = { workspace = true }
 miette = { workspace = true }
-thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 loro = "1.10.3"

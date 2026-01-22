@@ -26,9 +26,9 @@ use std::path::PathBuf;
 use cross_xdg::BaseDirs;
 use miette::{IntoDiagnostic, Result};
 
-use crate::errors::Error;
 use crate::filesystem::Filesystem;
 use crate::space::Locator;
+use crate::SpaceError;
 
 use super::traits::Config;
 use super::types::{RegisteredSpace, Settings, Spaces};
@@ -153,12 +153,12 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
 
         // Check if already registered by name
         if self.spaces.spaces.iter().any(|s| s.name == name) {
-            return Err(Error::SpaceAlreadyRegistered(name.to_string()).into());
+            return Err(SpaceError::AlreadyRegistered(name.to_string()).into());
         }
 
         // Check if already registered by path
         if self.spaces.spaces.iter().any(|s| s.path == path) {
-            return Err(Error::SpacePathAlreadyRegistered(path.to_path_buf()).into());
+            return Err(SpaceError::PathAlreadyRegistered(path.to_path_buf()).into());
         }
 
         self.spaces.spaces.push(RegisteredSpace {
@@ -174,7 +174,7 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
 
         let index = self
             .find_index(&locator)
-            .ok_or_else(|| Error::SpaceNotRegistered(locator.clone()))?;
+            .ok_or_else(|| SpaceError::NotRegistered(locator.to_string()))?;
 
         let removed = self.spaces.spaces.remove(index);
 
@@ -191,7 +191,7 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
 
         let space = self
             .find(locator.clone())
-            .ok_or(Error::SpaceNotRegistered(locator))?;
+            .ok_or_else(|| SpaceError::NotRegistered(locator.to_string()))?;
 
         self.spaces.active = Some(space.name.clone());
 
