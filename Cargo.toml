@@ -18,6 +18,7 @@ rust-version = "1.91.1"
 [workspace.dependencies]
 flow-core = { path = "crates/flow-core" }
 flow-cli = { path = "crates/flow-cli" }
+flow-common = { path = "crates/flow-common" }
 flow-errors = { path = "crates/flow-errors" }
 flow-app = { path = "crates/flow-app" }
 flow-tui = { path = "crates/flow-tui" }

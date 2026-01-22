@@ -6,7 +6,8 @@ use inquire::Text;
 use miette::IntoDiagnostic;
 use serde::Serialize;
 
-use crate::{commands::Command, common::OutputArgs, extensions::PathExt};
+use crate::{commands::Command, common::OutputArgs};
+use flow_common::PathExt;
 use flow_errors::CliError;
 
 #[derive(Args, Debug, Clone)]
