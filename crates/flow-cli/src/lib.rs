@@ -5,7 +5,6 @@ use crate::commands::{init, Command};
 
 mod commands;
 mod common;
-mod extensions;
 mod printer;
 
 #[derive(Subcommand)]

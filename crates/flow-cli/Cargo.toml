@@ -13,6 +13,7 @@ categories.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+flow-common = { workspace = true }
 flow-core = { workspace = true }
 flow-errors = { workspace = true }
 clap = { workspace = true }
