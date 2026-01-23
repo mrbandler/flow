@@ -94,6 +94,24 @@ Contributions are welcome! Please read the [Contributing Guide](./CONTRIBUTING.m
 
 Flow draws inspiration from [Logseq](https://logseq.com/), [Tana](https://tana.inc/), [Obsidian](https://obsidian.md/), [Roam Research](https://roamresearch.com/), and [jrnl](https://jrnl.sh/) — combining the best of outliners, knowledge graphs, and CLI simplicity.
 
+## AI Transparency
+
+This project uses AI as a development tool — **all AI-generated content is reviewed and refined by a human**.
+
+**AI assists with:**
+
+- Exploring ideas and concept refinement
+- Generating boilerplate code
+- Drafting documentation
+
+**AI does not write:**
+
+- Core logic and algorithms
+- Architectural decisions
+- Critical code paths
+
+I believe in transparency about AI usage while maintaining quality standards.
+
 ## License
 
 [AGPL-3.0](./LICENSE)
