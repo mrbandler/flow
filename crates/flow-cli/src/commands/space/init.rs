@@ -88,13 +88,13 @@ impl Command for Init {
 
         if self.args.name.is_none() {
             let mut name_prompt = Text::new("Name:").with_help_message("Name of the space");
-            let test = self
+            let path_file_name = self
                 .args
                 .path
                 .as_ref()
                 .and_then(|p| p.file_name())
                 .and_then(|n| n.to_str());
-            if let Some(name_default) = test {
+            if let Some(name_default) = path_file_name {
                 name_prompt = name_prompt.with_default(name_default);
             }
 
@@ -138,8 +138,7 @@ impl Command for Init {
     fn finalize(&self, output: &Self::Output) {
         let printer = self.printer();
 
-        printer.success("Space initialized");
-        printer.blank();
+        printer.success("Space initialized:");
         printer.kv("Name", &output.name);
         printer.kv("Path", output.path.normalize());
     }
