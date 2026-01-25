@@ -20,15 +20,16 @@
 //!
 //! ```ignore
 //! use flow_cli::{Commands, run};
+//! use flow_cli::commands::space;
 //!
-//! let cmd = Commands::Init(init::Arguments { /* ... */ });
+//! let cmd = Commands::Space(space::Commands::Init(space::init::Arguments { /* ... */ }));
 //! run(cmd).await?;
 //! ```
 
 use clap::Subcommand;
 use miette::Result;
 
-use crate::commands::{init, Command};
+use crate::commands::space;
 
 mod commands;
 mod common;
@@ -37,11 +38,12 @@ mod printer;
 /// Available CLI commands.
 ///
 /// Each variant corresponds to a subcommand that can be invoked from
-/// the command line (e.g., `flow init`).
+/// the command line (e.g., `flow space init`).
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Initialize a new Flow space.
-    Init(init::Arguments),
+    /// Manage Flow spaces.
+    #[command(subcommand)]
+    Space(space::Space),
 }
 
 /// Run the CLI with the given command.
@@ -51,7 +53,7 @@ pub enum Commands {
 /// Returns an error if the command execution fails.
 pub async fn run(cmd: Commands) -> Result<()> {
     match cmd {
-        Commands::Init(args) => init::Init::new(args).run().await?,
+        Commands::Space(space) => space.run().await?,
     }
 
     Ok(())

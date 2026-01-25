@@ -1,6 +1,6 @@
 //! The `init` command for creating new Flow spaces.
 //!
-//! This module implements the `flow init` command, which initializes a new
+//! This module implements the `flow space init` command, which initializes a new
 //! Flow space at a specified path. The command supports both interactive
 //! and non-interactive modes.
 //!
@@ -8,13 +8,13 @@
 //!
 //! ```bash
 //! # Interactive mode - prompts for path and name
-//! flow init
+//! flow space init
 //!
 //! # Non-interactive with arguments
-//! flow init ./my-notes --name personal
+//! flow space init ./my-notes --name personal
 //!
 //! # JSON output for scripting
-//! flow init ./my-notes --name personal --json
+//! flow space init ./my-notes --name personal --json
 //! ```
 
 use std::path::PathBuf;

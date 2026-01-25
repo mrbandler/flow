@@ -7,7 +7,7 @@ use miette::Result;
 
 use crate::{common::OutputArgs, printer::Printer};
 
-pub mod init;
+pub mod space;
 
 /// A CLI command that can be executed.
 ///
