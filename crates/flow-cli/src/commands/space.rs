@@ -7,6 +7,7 @@ use clap::Subcommand;
 use miette::Result;
 
 pub mod init;
+pub mod list;
 
 /// Space management commands.
 ///
@@ -14,8 +15,11 @@ pub mod init;
 /// to configuration and removal.
 #[derive(Subcommand)]
 pub enum Space {
-    /// Initialize a new Flow space.
+    /// Initialize a new space.
     Init(init::Arguments),
+
+    /// List all registered spaces.
+    List(list::Arguments),
 }
 
 impl Space {
@@ -29,6 +33,7 @@ impl Space {
 
         match self {
             Self::Init(args) => init::Init::new(args).run().await,
+            Self::List(args) => list::List::new(args).run().await,
         }
     }
 }

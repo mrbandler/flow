@@ -23,6 +23,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 inquire = { version = "0.9.2", features = ["date", "editor"] }
 console = "0.16.2"
+tabled = "0.17"
 
 [lints]
 workspace = true

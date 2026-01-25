@@ -5,6 +5,7 @@
 
 use console::{style, Emoji, Term};
 use miette::{IntoDiagnostic, Result};
+use tabled::{settings::Style, Table, Tabled};
 
 // Emojis with fallbacks for terminals that don't support them.
 static SPARKLE: Emoji<'_, '_> = Emoji("✨ ", "* ");
@@ -118,6 +119,18 @@ impl Printer {
                 style(key.into()).cyan().bold(),
                 style(value.into()).white()
             ));
+        }
+    }
+
+    /// Prints a table from an iterator of `Tabled` items.
+    pub fn table<T, I>(&self, items: I)
+    where
+        T: Tabled,
+        I: IntoIterator<Item = T>,
+    {
+        if !self.quiet && !self.json {
+            let table = Table::new(items).with(Style::rounded()).to_string();
+            let _ = Term::stdout().write_line(&table);
         }
     }
 
