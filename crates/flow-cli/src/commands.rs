@@ -61,6 +61,22 @@ pub trait Command: Sized {
         self.output_args().printer()
     }
 
+    /// Performs async initialization before the command runs.
+    ///
+    /// This method is called at the start of [`run`](Self::run), before
+    /// [`interactive`](Self::interactive) or [`execute`](Self::execute).
+    /// Use it to load configuration, validate paths, or perform other
+    /// async setup that should happen regardless of output mode.
+    ///
+    /// The default implementation does nothing.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if initialization fails.
+    async fn init(&mut self) -> Result<()> {
+        Ok(())
+    }
+
     /// Prompts the user for any missing required arguments.
     ///
     /// This method is called when running in interactive mode (not JSON output).
@@ -92,14 +108,17 @@ pub trait Command: Sized {
     ///
     /// This method orchestrates the command execution:
     ///
-    /// 1. If not in JSON mode, calls [`interactive`](Self::interactive) for prompts
-    /// 2. Calls [`execute`](Self::execute) to perform the work
-    /// 3. Outputs results as JSON or calls [`finalize`](Self::finalize)
+    /// 1. Calls [`init`](Self::init) for async initialization
+    /// 2. If not in JSON mode, calls [`interactive`](Self::interactive) for prompts
+    /// 3. Calls [`execute`](Self::execute) to perform the work
+    /// 4. Outputs results as JSON or calls [`finalize`](Self::finalize)
     ///
     /// # Errors
     ///
     /// Returns an error if any step fails.
     async fn run(&mut self) -> Result<()> {
+        self.init().await?;
+
         if !self.output_args().json {
             self.interactive().await?;
         }

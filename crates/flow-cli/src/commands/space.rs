@@ -8,6 +8,7 @@ use miette::Result;
 
 pub mod init;
 pub mod list;
+pub mod switch;
 
 /// Space management commands.
 ///
@@ -20,6 +21,9 @@ pub enum Space {
 
     /// List all registered spaces.
     List(list::Arguments),
+
+    /// Switch the active space.
+    Switch(switch::Arguments),
 }
 
 impl Space {
@@ -34,6 +38,7 @@ impl Space {
         match self {
             Self::Init(args) => init::Init::new(args).run().await,
             Self::List(args) => list::List::new(args).run().await,
+            Self::Switch(args) => switch::Switch::new(args).run().await,
         }
     }
 }
