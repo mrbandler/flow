@@ -85,3 +85,37 @@ impl PathExt for Path {
         s
     }
 }
+
+/// Serializes a [`PathBuf`] using forward slashes.
+///
+/// Use with `#[serde(serialize_with = "serialize_path")]` to output
+/// paths with forward slashes on all platforms.
+///
+/// # Example
+///
+/// ```ignore
+/// use std::path::PathBuf;
+/// use serde::{Deserialize, Serialize};
+/// use flow_common::serialize_path;
+///
+/// #[derive(Serialize, Deserialize)]
+/// struct Config {
+///     #[serde(serialize_with = "serialize_path")]
+///     path: PathBuf,
+/// }
+/// ```
+///
+/// # Errors
+///
+/// Returns an error if the serializer fails.
+pub fn serialize_win_path<S>(path: &Path, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let s = path.normalize_to_string();
+
+    #[cfg(windows)]
+    let s = s.replace('\\', "/");
+
+    serializer.serialize_str(&s)
+}

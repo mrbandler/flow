@@ -10,4 +10,4 @@
 
 mod path;
 
-pub use path::{PathBufExt, PathExt};
+pub use path::{serialize_win_path, PathBufExt, PathExt};

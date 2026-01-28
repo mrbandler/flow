@@ -17,6 +17,7 @@
 
 use std::path::PathBuf;
 
+use flow_common::serialize_win_path;
 use serde::{Deserialize, Serialize};
 
 /// User configuration settings.
@@ -71,6 +72,7 @@ pub struct RegisteredSpace {
     ///
     /// This is an absolute path to the directory containing the
     /// `.flow/` subdirectory.
+    #[serde(serialize_with = "serialize_win_path")]
     pub path: PathBuf,
 }
 
