@@ -12,16 +12,25 @@
 //!   global Flow configuration (e.g., `"personal"`, `"work"`).
 //! - **By path**: Use an explicit filesystem path to the space directory.
 //!
+//! # Parsing
+//!
+//! `Locator` implements [`FromStr`] which intelligently determines whether
+//! the input is a name or a path based on its structure:
+//!
+//! - Single-component strings like `"my-notes"` are interpreted as names.
+//! - Strings with path separators, or starting with `.` or `..`, are paths.
+//! - Absolute paths (starting with `/` or drive letters) are paths.
+//!
 //! # Type Conversions
 //!
-//! `Locator` implements [`From`] for common string and path types, making
-//! it easy to use with APIs that accept `impl Into<Locator>`:
+//! `Locator` also implements [`From`] for explicit conversions:
 //!
-//! - `String` and `&str` are interpreted as space names.
-//! - `PathBuf` and `&Path` are interpreted as filesystem paths.
+//! - `String` and `&str` are always interpreted as space names.
+//! - `PathBuf` and `&Path` are always interpreted as filesystem paths.
 
 use std::fmt;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
+use std::str::FromStr;
 
 /// A way to locate a [`Space`](super::Space).
 ///
@@ -76,20 +85,23 @@ pub enum Locator {
 }
 
 impl From<String> for Locator {
+    /// Converts a string to a `Locator`, using the same detection logic as `FromStr`.
+    ///
+    /// This allows clap argument parsing to correctly detect paths vs names.
     fn from(s: String) -> Self {
-        Self::Name(s)
+        s.parse().expect("Locator::from_str is infallible")
     }
 }
 
 impl From<&String> for Locator {
     fn from(s: &String) -> Self {
-        Self::Name(s.clone())
+        Self::from(s.clone())
     }
 }
 
 impl From<&str> for Locator {
     fn from(s: &str) -> Self {
-        Self::Name(s.to_owned())
+        s.parse().expect("Locator::from_str is infallible")
     }
 }
 
@@ -102,6 +114,59 @@ impl From<PathBuf> for Locator {
 impl From<&Path> for Locator {
     fn from(path: &Path) -> Self {
         Self::Path(path.to_path_buf())
+    }
+}
+
+impl FromStr for Locator {
+    type Err = std::convert::Infallible;
+
+    /// Parses a string into a `Locator`, automatically detecting whether
+    /// it represents a name or a path.
+    ///
+    /// # Detection Rules
+    ///
+    /// The input is treated as a path if any of the following are true:
+    /// - It starts with a root directory (`/` on Unix, `\` on Windows)
+    /// - It starts with a Windows drive prefix (`C:\`, etc.)
+    /// - It starts with `.` (current directory) or `..` (parent directory)
+    /// - It contains multiple path components (e.g., `foo/bar`)
+    ///
+    /// Otherwise, it is treated as a space name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use flow_core::Locator;
+    ///
+    /// // Single component -> Name
+    /// let loc: Locator = "my-notes".parse().unwrap();
+    /// assert!(matches!(loc, Locator::Name(_)));
+    ///
+    /// // Relative path with ./ -> Path
+    /// let loc: Locator = "./projects".parse().unwrap();
+    /// assert!(matches!(loc, Locator::Path(_)));
+    ///
+    /// // Multiple components -> Path
+    /// let loc: Locator = "foo/bar".parse().unwrap();
+    /// assert!(matches!(loc, Locator::Path(_)));
+    /// ```
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let path = Path::new(s);
+        let mut components = path.components();
+
+        let is_path = match components.next() {
+            // Starts with /, \, C:\, ., or ..
+            Some(Component::RootDir | Component::Prefix(_) | Component::CurDir | Component::ParentDir) => true,
+            // Has multiple components (e.g., "foo/bar")
+            Some(Component::Normal(_)) => components.next().is_some(),
+            None => false,
+        };
+
+        if is_path {
+            Ok(Self::Path(PathBuf::from(s)))
+        } else {
+            Ok(Self::Name(s.to_owned()))
+        }
     }
 }
 

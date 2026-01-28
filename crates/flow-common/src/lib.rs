@@ -5,8 +5,9 @@
 //!
 //! # Re-exports
 //!
+//! - [`PathBufExt`] - Extension trait for [`std::path::PathBuf`] with normalization support.
 //! - [`PathExt`] - Extension trait for [`std::path::Path`] with normalization support.
 
 mod path;
 
-pub use path::PathExt;
+pub use path::{PathBufExt, PathExt};

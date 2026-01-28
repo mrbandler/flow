@@ -140,6 +140,6 @@ impl Command for Init {
 
         printer.success("Space initialized:");
         printer.kv("Name", &output.name);
-        printer.kv("Path", output.path.normalize());
+        printer.kv("Path", output.path.normalize_to_string());
     }
 }

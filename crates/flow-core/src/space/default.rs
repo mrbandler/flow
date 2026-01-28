@@ -42,6 +42,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use flow_common::PathBufExt;
 use loro::LoroDoc;
 use miette::{ensure, IntoDiagnostic, Result};
 
@@ -173,15 +174,16 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
             fs.create_dir_all(path).await?;
         }
 
+        let path = path.canonicalize().into_diagnostic()?.normalize();
         let flow_dir = path.join(FLOW_DIR);
-        let is_empty = fs.is_dir_empty(path).await?;
+        let is_empty = fs.is_dir_empty(&path).await?;
         if !is_empty {
             let has_space = fs.exists(&flow_dir).await?;
             if has_space {
-                return Err(SpaceError::AlreadyExists(path.to_path_buf()).into());
+                return Err(SpaceError::AlreadyExists(path.clone()).into());
             }
 
-            return Err(SpaceError::DirectoryNotEmpty(path.to_path_buf()).into());
+            return Err(SpaceError::DirectoryNotEmpty(path.clone()).into());
         }
 
         let journal_dir = path.join(JOURNAL_DIR);
@@ -203,7 +205,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
 
         Ok(Self {
             fs,
-            path: path.to_path_buf(),
+            path,
             metadata,
             doc,
         })

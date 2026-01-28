@@ -24,6 +24,7 @@
 use std::path::PathBuf;
 
 use cross_xdg::BaseDirs;
+use flow_common::PathBufExt;
 use miette::{IntoDiagnostic, Result};
 
 use crate::filesystem::Filesystem;
@@ -97,7 +98,13 @@ impl<F: Filesystem> DefaultConfig<F> {
     fn find_index(&self, locator: &Locator) -> Option<usize> {
         match locator {
             Locator::Name(name) => self.spaces.spaces.iter().position(|s| &s.name == name),
-            Locator::Path(path) => self.spaces.spaces.iter().position(|s| &s.path == path),
+            Locator::Path(path) => {
+                // Canonicalize and normalize the path to match registered paths
+                let normalized = path
+                    .canonicalize()
+                    .map_or_else(|_| path.clone(), PathBuf::normalize);
+                self.spaces.spaces.iter().position(|s| s.path == normalized)
+            },
         }
     }
 }
@@ -214,7 +221,13 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
         let locator = locator.into();
         match locator {
             Locator::Name(name) => self.spaces.spaces.iter().find(|s| s.name == name),
-            Locator::Path(path) => self.spaces.spaces.iter().find(|s| s.path == path),
+            Locator::Path(path) => {
+                // Canonicalize and normalize the path to match registered paths
+                let normalized = path
+                    .canonicalize()
+                    .map_or_else(|_| path, PathBuf::normalize);
+                self.spaces.spaces.iter().find(|s| s.path == normalized)
+            },
         }
     }
 

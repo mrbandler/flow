@@ -23,9 +23,9 @@ struct SpaceOption {
 impl fmt::Display for SpaceOption {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_active {
-            write!(f, "{} ({}) ← active", self.name, self.path.normalize())
+            write!(f, "{} ({}) ← active", self.name, self.path.normalize_to_string())
         } else {
-            write!(f, "{} ({})", self.name, self.path.normalize())
+            write!(f, "{} ({})", self.name, self.path.normalize_to_string())
         }
     }
 }
@@ -119,6 +119,6 @@ impl Command for Switch {
 
         printer.success("Active space switched to:");
         printer.kv("Name", &output.name);
-        printer.kv("Path", output.path.normalize());
+        printer.kv("Path", output.path.normalize_to_string());
     }
 }

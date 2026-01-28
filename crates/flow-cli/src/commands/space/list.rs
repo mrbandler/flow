@@ -69,7 +69,7 @@ impl From<&OutputSpace> for SpaceRow {
         Self {
             marker: if space.active { "*" } else { "" },
             name: space.name.clone(),
-            path: space.path.normalize(),
+            path: space.path.normalize_to_string(),
         }
     }
 }
