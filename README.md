@@ -98,6 +98,8 @@ Flow draws inspiration from [Logseq](https://logseq.com/), [Tana](https://tana.i
 
 This project uses AI as a development tool — **all AI-generated content is reviewed and refined by a human**.
 
+I understand that AI in software development is a divisive topic. Many developers feel it undermines code craftsmanship and the art of building software by hand. I respect that perspective. However, as AI tools become standard across the industry, choosing not to use them means falling behind. This is my first project where I'm utilizing an AI coding agent, and I'm approaching it as a learning experience.
+
 **AI assists with:**
 
 - Exploring ideas and concept refinement
