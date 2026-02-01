@@ -54,7 +54,8 @@ Manage workspaces.
 | `space list` | List all known/registered spaces |
 | `space switch <name\|path>` | Set active space |
 | `space status` | Show current space info (path, page count, etc.) |
-| `space delete <name>` | Unregister space (optionally delete files) |
+| `space register <name\|path>` | Registers space |
+| `space unregister <name\|path>` | Unregister space (optionally delete files) |
 
 ### `flow page`
 
