@@ -204,7 +204,7 @@ impl Config {
     ///
     /// # async fn example() -> miette::Result<()> {
     /// let mut config = Config::load().await?;
-    /// config.unregister(&"personal".into()).await?;
+    /// config.unregister(&"personal".into(), false).await?;
     /// # Ok(())
     /// # }
     /// ```
