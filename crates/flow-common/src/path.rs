@@ -22,7 +22,8 @@ pub trait PathBufExt {
     ///
     /// On Windows, this removes the extended-length path prefix (`\\?\`)
     /// that can appear when paths are canonicalized.
-    fn normalize_to_string(self) -> String;
+    #[must_use]
+    fn normalize_to_string(&self) -> String;
 }
 
 impl PathBufExt for PathBuf {
@@ -36,7 +37,7 @@ impl PathBufExt for PathBuf {
         self
     }
 
-    fn normalize_to_string(self) -> String {
+    fn normalize_to_string(&self) -> String {
         let mut s = self.display().to_string();
 
         #[cfg(windows)]
@@ -58,8 +59,14 @@ pub trait PathExt {
     /// On Windows, this removes the extended-length path prefix (`\\?\`)
     /// that can appear when paths are canonicalized. On other platforms,
     /// this returns a copy of the path.
+    #[must_use]
     fn normalize(&self) -> PathBuf;
 
+    /// Returns a normalized path as a string.
+    ///
+    /// On Windows, this removes the extended-length path prefix (`\\?\`)
+    /// that can appear when paths are canonicalized.
+    #[must_use]
     fn normalize_to_string(&self) -> String;
 }
 
@@ -88,7 +95,7 @@ impl PathExt for Path {
 
 /// Serializes a [`PathBuf`] using forward slashes.
 ///
-/// Use with `#[serde(serialize_with = "serialize_path")]` to output
+/// Use with `#[serde(serialize_with = "serialize_win_path")]` to output
 /// paths with forward slashes on all platforms.
 ///
 /// # Example
@@ -96,11 +103,11 @@ impl PathExt for Path {
 /// ```ignore
 /// use std::path::PathBuf;
 /// use serde::{Deserialize, Serialize};
-/// use flow_common::serialize_path;
+/// use flow_common::serialize_win_path;
 ///
 /// #[derive(Serialize, Deserialize)]
 /// struct Config {
-///     #[serde(serialize_with = "serialize_path")]
+///     #[serde(serialize_with = "serialize_win_path")]
 ///     path: PathBuf,
 /// }
 /// ```
