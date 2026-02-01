@@ -1,0 +1,183 @@
+//! The `unregister` command for removing spaces from Flow's configuration.
+//!
+//! This module implements the `flow space unregister` command, which removes
+//! a space from Flow's registry. The space will no longer appear in
+//! `flow space list` and cannot be switched to by name.
+//!
+//! Optionally, the `--delete` flag can be used to also delete the space's
+//! files from disk.
+//!
+//! # Examples
+//!
+//! ```bash
+//! # Interactive mode - select space to unregister
+//! flow space unregister
+//!
+//! # Unregister by name
+//! flow space unregister personal
+//!
+//! # Unregister by path
+//! flow space unregister ./my-notes
+//!
+//! # Unregister and delete files from disk
+//! flow space unregister personal --delete
+//!
+//! # JSON output for scripting
+//! flow space unregister personal --json
+//! ```
+
+use std::path::PathBuf;
+
+use clap::Args;
+use flow_common::PathExt;
+use flow_core::{Config, Locator, SpaceError};
+use flow_errors::CliError;
+use inquire::{Confirm, Select};
+use lazyinit::LazyInit;
+use miette::{IntoDiagnostic, Result};
+use serde::Serialize;
+
+use crate::{
+    commands::{space::SpaceOption, Command},
+    common::GlobalArgs,
+};
+
+/// Command-line arguments for the `unregister` command.
+#[derive(Args, Debug, Clone)]
+pub struct Arguments {
+    /// Global arguments.
+    #[command(flatten)]
+    pub globals: GlobalArgs,
+
+    /// The locator (name or path) of the space to unregister.
+    pub locator: Option<Locator>,
+
+    /// Whether to delete the space's files from disk.
+    #[arg(long, short)]
+    pub delete: bool,
+}
+
+/// Output of a successful `unregister` command.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Output {
+    /// The name of the unregistered space.
+    pub name: String,
+
+    /// The filesystem path where the space was located.
+    pub path: PathBuf,
+
+    /// Whether the space's files were deleted from disk.
+    pub delete: bool,
+}
+
+/// Unregisters a Flow space from the configuration.
+///
+/// This command removes a space from Flow's registry. Optionally,
+/// the space's files can be deleted from disk with the `--delete` flag.
+pub struct Unregister {
+    args: Arguments,
+    config: LazyInit<Config>,
+}
+
+impl Command for Unregister {
+    type Args = Arguments;
+    type Output = Output;
+
+    fn new(args: Self::Args) -> Self {
+        Self {
+            args,
+            config: LazyInit::new(),
+        }
+    }
+
+    fn globals(&self) -> &GlobalArgs {
+        &self.args.globals
+    }
+
+    async fn init(&mut self) -> Result<()> {
+        self.config.init_once(Config::load().await?);
+
+        Ok(())
+    }
+
+    fn needs_interaction(&self) -> bool {
+        self.globals().interactive || self.args.locator.is_none()
+    }
+
+    async fn interactive(&mut self) -> Result<()> {
+        let printer = self.printer();
+        printer.info("Entering interactive mode");
+
+        let forced = self.globals().interactive;
+
+        if forced || self.args.locator.is_none() {
+            let cwd_locator;
+            let default_locator = if let Some(loc) = &self.args.locator {
+                loc
+            } else {
+                let cwd = std::env::current_dir().into_diagnostic()?;
+                cwd_locator = Locator::from(cwd.normalize());
+                &cwd_locator
+            };
+
+            let (options, default_index) = SpaceOption::from_config(&self.config, Some(default_locator));
+            let selected = Select::new("Select the space to unregister:", options)
+                .with_starting_cursor(default_index)
+                .prompt()
+                .into_diagnostic()?;
+
+            self.args.locator = Some(selected.name.into());
+        }
+
+        // When 'forced', we ask whether the user wants to override default values of non-required arguments.
+        let prompt_overrides = forced
+            && Confirm::new("Do you want to override default flags?")
+                .with_default(false)
+                .prompt()
+                .into_diagnostic()?;
+
+        if prompt_overrides {
+            self.args.delete = Confirm::new("Delete selected space?")
+                .with_default(self.args.delete)
+                .with_help_message("Will delete the space's files from disk")
+                .prompt()
+                .into_diagnostic()?;
+        }
+
+        Ok(())
+    }
+
+    async fn execute(&mut self) -> Result<Self::Output> {
+        let locator = self
+            .args
+            .locator
+            .take()
+            .ok_or_else(|| CliError::MissingArgument("locator".to_string()))?;
+
+        let space = self
+            .config
+            .find(&locator)
+            .await
+            .ok_or_else(|| SpaceError::NotRegistered(locator.to_string()))?;
+
+        let name = space.name.clone();
+        let path = space.path.clone();
+
+        self.config.unregister(&locator, self.args.delete).await?;
+
+        Ok(Output {
+            name,
+            path,
+            delete: self.args.delete,
+        })
+    }
+
+    fn finalize(&self, output: &Self::Output) {
+        let printer = self.printer();
+
+        printer.success("Space unregistered:");
+        printer.kv("Name", &output.name);
+        printer.kv("Path", output.path.normalize_to_string());
+        printer.kv("Deleted", output.delete.to_string());
+    }
+}
