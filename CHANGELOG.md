@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Configuration module for managing Flow settings and registered spaces
+  - `Config` struct with methods to register, unregister, and find spaces
+  - Support for setting and clearing the active space
+  - Persistent storage in `~/.config/flow/` (config.json and spaces.json)
+- Space management CLI commands
+  - `flow space init` - Initialize a new space at a path
+  - `flow space list` - List all registered spaces with active marker
+  - `flow space switch` - Change the active space
+  - `flow space register` - Register an existing space
+  - `flow space unregister` - Remove a space from the registry (with optional `--delete`)
+- `Locator` type for identifying spaces by name or filesystem path
+- `Printer` module for consistent CLI output with support for JSON, verbose, and quiet modes
+- Path normalization utilities in `flow-common` for cross-platform compatibility
+- `Command` trait for consistent CLI command lifecycle (init, validate, interactive, execute, finalize)
+- Global CLI arguments: `--interactive`, `--json`, `--verbose`, `--quiet`
+- Custom path serializer to output paths with forward slashes on all platforms
 - Space module with trait-based abstraction pattern for easy testing and extensibility
 - Filesystem module with local filesystem implementation
 - Initial project structure with workspace layout
@@ -39,7 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Nothing yet
+- Paths stored in configuration are now properly canonicalized and normalized
+- Windows extended-length path prefix (`\\?\`) is stripped from displayed paths
 
 ### Security
 
