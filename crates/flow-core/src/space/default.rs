@@ -42,7 +42,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use flow_common::PathBufExt;
 use loro::LoroDoc;
 use miette::{ensure, IntoDiagnostic, Result};
 
@@ -174,7 +173,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
             fs.create_dir_all(path).await?;
         }
 
-        let path = path.canonicalize().into_diagnostic()?.normalize();
+        let path = fs.canonicalize(path).await?;
         let flow_dir = path.join(FLOW_DIR);
         let is_empty = fs.is_dir_empty(&path).await?;
         if !is_empty {
