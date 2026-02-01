@@ -42,4 +42,20 @@ pub enum CliError {
         help("Use --space to specify one specifically or register one with `flow register`.")
     )]
     NoActiveSpace,
+
+    /// No spaces are registered.
+    ///
+    /// This error occurs when a command requires at least one registered
+    /// space but none have been registered yet.
+    ///
+    /// # Error Code
+    ///
+    /// `flow::no_spaces_registered`
+    #[error("No spaces are registered")]
+    #[diagnostic(
+        code(flow::no_spaces_registered),
+        url(docsrs),
+        help("Register a space first with `flow space init` or `flow space register`.")
+    )]
+    NoSpacesRegistered,
 }
