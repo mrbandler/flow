@@ -4,10 +4,13 @@
 //! of the [`Filesystem`](super::Filesystem) trait that delegates to
 //! Tokio's async filesystem APIs.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
+use flow_common::PathBufExt;
 use miette::Result;
-use tokio::fs::{create_dir, create_dir_all, metadata, read, read_dir, read_to_string, try_exists, write};
+use tokio::fs::{
+    canonicalize, create_dir, create_dir_all, metadata, read, read_dir, read_to_string, try_exists, write,
+};
 
 use crate::filesystem::traits::Filesystem;
 use crate::IoError;
@@ -83,12 +86,32 @@ impl Filesystem for LocalFilesystem {
         create_dir(&path).await.map_err(|e| IoError(e).into())
     }
 
+    /// Removes an empty directory using [`tokio::fs::remove_dir`].
+    ///
+    /// The directory must be empty. Returns an error if the directory
+    /// contains any files or subdirectories.
+    async fn remove_dir(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
+        tokio::fs::remove_dir(&path)
+            .await
+            .map_err(|e| IoError(e).into())
+    }
+
     /// Creates a directory using [`tokio::fs::create_dir_all`].
     ///
     /// This does create parent directories. Use this only when
     /// the parent directory is known to exist.
     async fn create_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
         create_dir_all(&path).await.map_err(|e| IoError(e).into())
+    }
+
+    /// Removes a directory and all contents using [`tokio::fs::remove_dir_all`].
+    ///
+    /// This recursively deletes all files and subdirectories within the
+    /// specified path. Use with caution as this operation is not reversible.
+    async fn remove_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
+        tokio::fs::remove_dir_all(&path)
+            .await
+            .map_err(|e| IoError(e).into())
     }
 
     /// Writes content to a file using [`tokio::fs::write`].
@@ -119,6 +142,16 @@ impl Filesystem for LocalFilesystem {
     async fn read_to_string(&self, path: impl AsRef<Path> + Send + Sync) -> Result<String> {
         let path = path.as_ref();
         read_to_string(path).await.map_err(|e| IoError(e).into())
+    }
+
+    /// Returns the canonical, absolute form of a path using [`tokio::fs::canonicalize`].
+    ///
+    /// The path is normalized to strip the Windows `\\?\` prefix.
+    async fn canonicalize(&self, path: impl AsRef<Path> + Send + Sync) -> Result<PathBuf> {
+        canonicalize(&path)
+            .await
+            .map(PathBuf::normalize)
+            .map_err(|e| IoError(e).into())
     }
 }
 

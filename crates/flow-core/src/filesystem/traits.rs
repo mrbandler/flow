@@ -1,5 +1,6 @@
+use std::path::{Path, PathBuf};
+
 use miette::Result;
-use std::path::Path;
 
 /// An abstraction over filesystem operations.
 ///
@@ -28,6 +29,7 @@ use std::path::Path;
 ///     }
 /// }
 /// ```
+#[allow(dead_code)]
 pub trait Filesystem: Send + Sync {
     /// Checks if a path exists on the filesystem.
     ///
@@ -85,6 +87,23 @@ pub trait Filesystem: Send + Sync {
     /// - Permission is denied.
     async fn create_dir(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()>;
 
+    /// Removes an empty directory at the given path.
+    ///
+    /// The directory must be empty; use [`remove_dir_all`](Self::remove_dir_all)
+    /// to remove a directory and its contents.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the directory to remove.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The directory does not exist.
+    /// - The directory is not empty.
+    /// - Permission is denied.
+    async fn remove_dir(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()>;
+
     /// Creates a new directory at the given path.
     ///
     /// The parent directory must already exist. This does create parent directories.
@@ -100,6 +119,23 @@ pub trait Filesystem: Send + Sync {
     /// - A file or directory already exists at the path.
     /// - Permission is denied.
     async fn create_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()>;
+
+    /// Removes a directory and all of its contents recursively.
+    ///
+    /// This is a destructive operation that will delete everything within
+    /// the directory. Use with caution.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to the directory to remove.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The path does not exist.
+    /// - The path is not a directory.
+    /// - Permission is denied.
+    async fn remove_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()>;
 
     /// Writes content to a file at the given path.
     ///
@@ -140,4 +176,18 @@ pub trait Filesystem: Send + Sync {
     ///
     /// Returns an error if the file does not exist or cannot be read.
     async fn read_to_string(&self, path: impl AsRef<Path> + Send + Sync) -> Result<String>;
+
+    /// Returns the canonical, absolute form of a path.
+    ///
+    /// This resolves symbolic links and normalizes the path. On Windows,
+    /// the returned path will have the `\\?\` prefix stripped.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The path to canonicalize.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the path does not exist or cannot be resolved.
+    async fn canonicalize(&self, path: impl AsRef<Path> + Send + Sync) -> Result<PathBuf>;
 }
