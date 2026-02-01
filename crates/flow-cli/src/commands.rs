@@ -5,7 +5,7 @@
 
 use miette::Result;
 
-use crate::{common::OutputArgs, printer::Printer};
+use crate::{common::GlobalArgs, printer::Printer};
 
 pub mod space;
 
@@ -14,9 +14,11 @@ pub mod space;
 /// This trait defines the lifecycle of a command:
 ///
 /// 1. **Construction** - Create the command with parsed arguments via [`new`](Self::new)
-/// 2. **Interactive prompting** - Gather missing arguments via [`interactive`](Self::interactive)
-/// 3. **Execution** - Perform the command's work via [`execute`](Self::execute)
-/// 4. **Output** - Display results via [`finalize`](Self::finalize) or JSON
+/// 2. **Initialization** - Perform async setup via [`init`](Self::init)
+/// 3. **Validation** - Check preconditions via [`validate`](Self::validate)
+/// 4. **Interactive prompting** - Gather missing arguments via [`interactive`](Self::interactive)
+/// 5. **Execution** - Perform the command's work via [`execute`](Self::execute)
+/// 6. **Output** - Display results via [`finalize`](Self::finalize) or JSON
 ///
 /// The [`run`](Self::run) method orchestrates this lifecycle automatically.
 ///
@@ -53,12 +55,13 @@ pub trait Command: Sized {
     /// Creates a new command instance from parsed arguments.
     fn new(args: Self::Args) -> Self;
 
-    /// Returns the output formatting arguments.
-    fn output_args(&self) -> &OutputArgs;
+    /// Returns the global arguments.
+    fn globals(&self) -> &GlobalArgs;
 
     /// Creates a printer configured with the command's output settings.
+    #[must_use]
     fn printer(&self) -> Printer {
-        self.output_args().printer()
+        Printer::new(self.globals().json, self.globals().verbose, self.globals().quiet)
     }
 
     /// Performs async initialization before the command runs.
@@ -77,6 +80,26 @@ pub trait Command: Sized {
         Ok(())
     }
 
+    /// Validates preconditions before interactive prompting or execution.
+    ///
+    /// This method is called after [`init`](Self::init) but before
+    /// [`interactive`](Self::interactive). Use it to verify that the
+    /// command can proceed (e.g., required resources exist).
+    ///
+    /// The default implementation does nothing.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if validation fails.
+    async fn validate(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    /// Indicates whether the command requires interactive prompting.
+    fn needs_interaction(&self) -> bool {
+        self.globals().interactive
+    }
+
     /// Prompts the user for any missing required arguments.
     ///
     /// This method is called when running in interactive mode (not JSON output).
@@ -85,7 +108,9 @@ pub trait Command: Sized {
     /// # Errors
     ///
     /// Returns an error if prompting fails or the user cancels.
-    async fn interactive(&mut self) -> Result<()>;
+    async fn interactive(&mut self) -> Result<()> {
+        Ok(())
+    }
 
     /// Executes the command's main logic.
     ///
@@ -109,22 +134,30 @@ pub trait Command: Sized {
     /// This method orchestrates the command execution:
     ///
     /// 1. Calls [`init`](Self::init) for async initialization
-    /// 2. If not in JSON mode, calls [`interactive`](Self::interactive) for prompts
-    /// 3. Calls [`execute`](Self::execute) to perform the work
-    /// 4. Outputs results as JSON or calls [`finalize`](Self::finalize)
+    /// 2. Calls [`validate`](Self::validate) to check preconditions
+    /// 3. If not in JSON mode, calls [`interactive`](Self::interactive) for prompts
+    /// 4. Calls [`execute`](Self::execute) to perform the work
+    /// 5. Outputs results as JSON or calls [`finalize`](Self::finalize)
     ///
     /// # Errors
     ///
     /// Returns an error if any step fails.
     async fn run(&mut self) -> Result<()> {
+        self.printer().verbose("Initializing...");
         self.init().await?;
 
-        if !self.output_args().json {
+        self.printer().verbose("Validating...");
+        self.validate().await?;
+
+        self.printer().verbose("Checking to interactive mode...");
+        if self.needs_interaction() && !self.globals().json {
+            self.printer().verbose("Entering interactive mode");
             self.interactive().await?;
         }
 
+        self.printer().verbose("Executing...");
         let output = self.execute().await?;
-        if self.output_args().json {
+        if self.globals().json {
             self.printer().json(&output)?;
         } else {
             self.finalize(&output);

@@ -1,4 +1,26 @@
-use std::{fmt, path::PathBuf};
+//! The `switch` command for changing the active Flow space.
+//!
+//! This module implements the `flow space switch` command, which sets
+//! a different registered space as the active space. The active space
+//! is the default space used when no space is explicitly specified.
+//!
+//! # Examples
+//!
+//! ```bash
+//! # Interactive mode - select from registered spaces
+//! flow space switch
+//!
+//! # Switch by name
+//! flow space switch personal
+//!
+//! # Switch by path
+//! flow space switch ./my-notes
+//!
+//! # JSON output for scripting
+//! flow space switch personal --json
+//! ```
+
+use std::path::PathBuf;
 
 use clap::Args;
 use flow_common::PathExt;
@@ -9,44 +31,36 @@ use lazyinit::LazyInit;
 use miette::{IntoDiagnostic, Result};
 use serde::Serialize;
 
-use crate::{commands::Command, common::OutputArgs};
+use crate::{
+    commands::{space::SpaceOption, Command},
+    common::GlobalArgs,
+};
 
-/// A space option for interactive selection.
-///
-/// Displays as "name (path)" or "name (path) (active)" for the currently active space.
-struct SpaceOption {
-    name: String,
-    path: PathBuf,
-    is_active: bool,
-}
-
-impl fmt::Display for SpaceOption {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_active {
-            write!(f, "{} ({}) ← active", self.name, self.path.normalize_to_string())
-        } else {
-            write!(f, "{} ({})", self.name, self.path.normalize_to_string())
-        }
-    }
-}
-
+/// Command-line arguments for the `switch` command.
 #[derive(Args, Debug, Clone)]
 pub struct Arguments {
+    /// Global arguments.
     #[command(flatten)]
-    pub output: OutputArgs,
+    pub globals: GlobalArgs,
 
     /// The locator (name or path) of the space to switch to.
     pub locator: Option<Locator>,
 }
 
+/// Output of a successful `switch` command.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Output {
-    /// The name assigned to the space.
+    /// The name of the newly active space.
     pub name: String,
-    /// The filesystem path where the space was created.
+
+    /// The filesystem path to the newly active space.
     pub path: PathBuf,
 }
 
+/// Switches the active Flow space.
+///
+/// This command changes which space is used by default when no space
+/// is explicitly specified in other commands.
 pub struct Switch {
     args: Arguments,
     config: LazyInit<Config>,
@@ -63,31 +77,47 @@ impl Command for Switch {
         }
     }
 
-    fn output_args(&self) -> &crate::common::OutputArgs {
-        &self.args.output
+    fn globals(&self) -> &crate::common::GlobalArgs {
+        &self.args.globals
     }
 
     async fn init(&mut self) -> Result<()> {
         self.config.init_once(Config::load().await?);
+
         Ok(())
     }
 
+    async fn validate(&mut self) -> Result<()> {
+        if self.config.spaces().is_empty() {
+            return Err(CliError::NoSpacesRegistered.into());
+        }
+
+        Ok(())
+    }
+
+    fn needs_interaction(&self) -> bool {
+        self.globals().interactive || self.args.locator.is_none()
+    }
+
     async fn interactive(&mut self) -> Result<()> {
-        if self.args.locator.is_none() {
-            let active_name = self.config.active().map(|s| s.name.as_str());
+        let printer = self.printer();
+        printer.info("Entering interactive mode");
 
-            let options: Vec<SpaceOption> = self
-                .config
-                .spaces()
-                .iter()
-                .map(|space| SpaceOption {
-                    name: space.name.clone(),
-                    path: space.path.clone(),
-                    is_active: active_name == Some(space.name.as_str()),
-                })
-                .collect();
+        let forced = self.globals().interactive;
 
+        if forced || self.args.locator.is_none() {
+            let cwd_locator;
+            let default_locator = if let Some(loc) = &self.args.locator {
+                loc
+            } else {
+                let cwd = std::env::current_dir().into_diagnostic()?;
+                cwd_locator = Locator::from(cwd.normalize());
+                &cwd_locator
+            };
+
+            let (options, default_index) = SpaceOption::from_config(&self.config, Some(default_locator));
             let selected = Select::new("Select the space to switch to:", options)
+                .with_starting_cursor(default_index)
                 .prompt()
                 .into_diagnostic()?;
 
@@ -104,7 +134,7 @@ impl Command for Switch {
             .take()
             .ok_or_else(|| CliError::MissingArgument("locator".to_string()))?;
 
-        self.config.set_active(locator).await?;
+        self.config.set_active(&locator).await?;
 
         let active = self.config.active().ok_or(CliError::NoActiveSpace)?;
 

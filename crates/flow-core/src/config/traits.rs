@@ -28,7 +28,7 @@ use crate::space::Space;
 /// ```ignore
 /// use flow_core::config::{Config, DefaultConfig};
 /// use flow_core::filesystem::LocalFilesystem;
-/// use flow_core::Space;
+/// use flow_core::{Locator, Space};
 ///
 /// let fs = LocalFilesystem;
 /// let mut config = DefaultConfig::load(fs).await?;
@@ -38,7 +38,7 @@ use crate::space::Space;
 /// config.register(&space).await?;
 ///
 /// // Set it as active
-/// config.set_active("personal").await?;
+/// config.set_active(&"personal".into()).await?;
 /// ```
 pub trait Config: Sized + Send + Sync {
     /// The filesystem implementation used for persistence.
@@ -87,7 +87,20 @@ pub trait Config: Sized + Send + Sync {
     /// Returns an error if:
     /// - The space is not registered
     /// - The configuration cannot be saved
-    async fn unregister(&mut self, locator: impl Into<Locator> + Send) -> Result<()>;
+    async fn unregister(&mut self, locator: &Locator, delete: bool) -> Result<()>;
+
+    /// Checks if the given space is the active space.
+    ///
+    /// # Arguments
+    ///
+    /// * `locator` - Identifies the space to check, either by name or path.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the space is the currently active space, `false` otherwise.
+    #[must_use]
+    #[allow(dead_code)]
+    async fn is_active(&self, locator: &Locator) -> bool;
 
     /// Sets the active space.
     ///
@@ -103,7 +116,7 @@ pub trait Config: Sized + Send + Sync {
     /// Returns an error if:
     /// - The space is not registered
     /// - The configuration cannot be saved
-    async fn set_active(&mut self, locator: impl Into<Locator> + Send) -> Result<()>;
+    async fn set_active(&mut self, locator: &Locator) -> Result<()>;
 
     /// Clears the active space.
     ///
@@ -120,6 +133,7 @@ pub trait Config: Sized + Send + Sync {
     /// # Returns
     ///
     /// A reference to the active space, or `None` if no space is active.
+    #[must_use]
     fn active(&self) -> Option<&RegisteredSpace>;
 
     /// Finds a registered space by name or path.
@@ -131,13 +145,15 @@ pub trait Config: Sized + Send + Sync {
     /// # Returns
     ///
     /// A reference to the registered space, or `None` if not found.
-    fn find(&self, locator: impl Into<Locator>) -> Option<&RegisteredSpace>;
+    #[must_use]
+    async fn find(&self, locator: &Locator) -> Option<&RegisteredSpace>;
 
     /// Returns all registered spaces.
     ///
     /// # Returns
     ///
     /// A slice containing all registered spaces.
+    #[must_use]
     fn spaces(&self) -> &[RegisteredSpace];
 
     /// Returns the current user settings.
@@ -145,5 +161,6 @@ pub trait Config: Sized + Send + Sync {
     /// # Returns
     ///
     /// A reference to the settings.
+    #[must_use]
     fn settings(&self) -> &Settings;
 }

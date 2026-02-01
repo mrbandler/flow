@@ -21,19 +21,20 @@ use std::path::PathBuf;
 
 use clap::Args;
 use flow_core::{Config, Space};
-use inquire::Text;
+use inquire::{Confirm, Text};
 use miette::IntoDiagnostic;
 use serde::Serialize;
 
-use crate::{commands::Command, common::OutputArgs};
+use crate::{commands::Command, common::GlobalArgs};
 use flow_common::PathExt;
 use flow_errors::CliError;
 
 /// Command-line arguments for the `init` command.
 #[derive(Args, Debug, Clone)]
 pub struct Arguments {
+    /// Global arguments
     #[command(flatten)]
-    pub output: OutputArgs,
+    pub globals: GlobalArgs,
 
     /// Path to initialize the space at
     pub path: Option<PathBuf>,
@@ -52,6 +53,7 @@ pub struct Arguments {
 pub struct Output {
     /// The name assigned to the space.
     pub name: String,
+
     /// The filesystem path where the space was created.
     pub path: PathBuf,
 }
@@ -69,16 +71,29 @@ impl Command for Init {
         Self { args }
     }
 
-    fn output_args(&self) -> &OutputArgs {
-        &self.args.output
+    fn globals(&self) -> &GlobalArgs {
+        &self.args.globals
+    }
+
+    fn needs_interaction(&self) -> bool {
+        self.globals().interactive || self.args.path.is_none() || self.args.name.is_none()
     }
 
     async fn interactive(&mut self) -> miette::Result<()> {
-        if self.args.path.is_none() {
-            self.printer().info("Entering interactive mode");
+        let printer = self.printer();
+        printer.info("Entering interactive mode");
+
+        let forced = self.globals().interactive;
+
+        if forced || self.args.path.is_none() {
+            let default = self
+                .args
+                .path
+                .as_ref()
+                .map_or_else(|| ".".to_string(), |p| p.normalize_to_string());
 
             let path_input = Text::new("Path:")
-                .with_default(".")
+                .with_default(&default)
                 .with_help_message("Path where the space will be initialized")
                 .prompt()
                 .into_diagnostic()?;
@@ -86,22 +101,40 @@ impl Command for Init {
             self.args.path = Some(PathBuf::from(path_input));
         }
 
-        if self.args.name.is_none() {
-            let mut name_prompt = Text::new("Name:").with_help_message("Name of the space");
-            let path_file_name = self
-                .args
-                .path
-                .as_ref()
-                .and_then(|p| p.file_name())
-                .and_then(|n| n.to_str());
-            if let Some(name_default) = path_file_name {
-                name_prompt = name_prompt.with_default(name_default);
+        if forced || self.args.name.is_none() {
+            let default = self.args.name.clone().or_else(|| {
+                self.args
+                    .path
+                    .as_ref()
+                    .and_then(|p| p.file_name())
+                    .and_then(|n| n.to_str())
+                    .map(String::from)
+            });
+
+            let mut prompt = Text::new("Name:").with_help_message("Name of the space");
+            if let Some(d) = &default {
+                prompt = prompt.with_default(d);
             }
 
-            let name_input = name_prompt.prompt().into_diagnostic()?;
+            let name_input = prompt.prompt().into_diagnostic()?;
             if !name_input.trim().is_empty() {
                 self.args.name = Some(name_input);
             }
+        }
+
+        // When 'forced', we ask whether the user wants to override default values of non-required arguments.
+        let prompt_overrides = forced
+            && Confirm::new("Do you want to override default flags?")
+                .with_default(false)
+                .prompt()
+                .into_diagnostic()?;
+
+        if prompt_overrides {
+            self.args.no_register = !Confirm::new("Register this space?")
+                .with_default(!self.args.no_register)
+                .with_help_message("Registered spaces appear in 'flow space list' and can be switched to by name")
+                .prompt()
+                .into_diagnostic()?;
         }
 
         Ok(())
@@ -128,7 +161,7 @@ impl Command for Init {
 
             config.register(&space).await?;
             if config.active().is_none() {
-                config.set_active(space.name()).await?;
+                config.set_active(&space.name().into()).await?;
             }
         }
 

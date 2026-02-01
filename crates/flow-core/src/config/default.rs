@@ -24,7 +24,6 @@
 use std::path::PathBuf;
 
 use cross_xdg::BaseDirs;
-use flow_common::PathBufExt;
 use miette::{IntoDiagnostic, Result};
 
 use crate::filesystem::Filesystem;
@@ -95,14 +94,16 @@ impl<F: Filesystem> DefaultConfig<F> {
     }
 
     /// Finds a space by locator and returns its index.
-    fn find_index(&self, locator: &Locator) -> Option<usize> {
+    async fn find_index(&self, locator: &Locator) -> Option<usize> {
         match locator {
             Locator::Name(name) => self.spaces.spaces.iter().position(|s| &s.name == name),
             Locator::Path(path) => {
                 // Canonicalize and normalize the path to match registered paths
-                let normalized = path
-                    .canonicalize()
-                    .map_or_else(|_| path.clone(), PathBuf::normalize);
+                let normalized = self
+                    .fs
+                    .canonicalize(path)
+                    .await
+                    .unwrap_or_else(|_| path.clone());
                 self.spaces.spaces.iter().position(|s| s.path == normalized)
             },
         }
@@ -176,11 +177,10 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
         self.save_spaces().await
     }
 
-    async fn unregister(&mut self, locator: impl Into<Locator> + Send) -> Result<()> {
-        let locator = locator.into();
-
+    async fn unregister(&mut self, locator: &Locator, delete: bool) -> Result<()> {
         let index = self
-            .find_index(&locator)
+            .find_index(locator)
+            .await
             .ok_or_else(|| SpaceError::NotRegistered(locator.to_string()))?;
 
         let removed = self.spaces.spaces.remove(index);
@@ -190,18 +190,39 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
             self.spaces.active = None;
         }
 
-        self.save_spaces().await
+        self.save_spaces().await?;
+        if delete {
+            self.fs.remove_dir_all(&removed.path).await?;
+        }
+
+        Ok(())
     }
 
-    async fn set_active(&mut self, locator: impl Into<Locator> + Send) -> Result<()> {
-        let locator = locator.into();
+    async fn is_active(&self, locator: &Locator) -> bool {
+        match locator {
+            Locator::Name(name) => self.spaces.active.as_ref() == Some(name),
+            Locator::Path(path) => {
+                if let Some(active_space) = self.active() {
+                    let normalized = self
+                        .fs
+                        .canonicalize(path)
+                        .await
+                        .unwrap_or_else(|_| path.clone());
+                    active_space.path == normalized
+                } else {
+                    false
+                }
+            },
+        }
+    }
 
+    async fn set_active(&mut self, locator: &Locator) -> Result<()> {
         let space = self
-            .find(locator.clone())
+            .find(locator)
+            .await
             .ok_or_else(|| SpaceError::NotRegistered(locator.to_string()))?;
 
         self.spaces.active = Some(space.name.clone());
-
         self.save_spaces().await
     }
 
@@ -217,15 +238,15 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
             .and_then(|name| self.spaces.spaces.iter().find(|s| &s.name == name))
     }
 
-    fn find(&self, locator: impl Into<Locator>) -> Option<&RegisteredSpace> {
-        let locator = locator.into();
+    async fn find(&self, locator: &Locator) -> Option<&RegisteredSpace> {
         match locator {
-            Locator::Name(name) => self.spaces.spaces.iter().find(|s| s.name == name),
+            Locator::Name(name) => self.spaces.spaces.iter().find(|s| &s.name == name),
             Locator::Path(path) => {
-                // Canonicalize and normalize the path to match registered paths
-                let normalized = path
-                    .canonicalize()
-                    .map_or_else(|_| path, PathBuf::normalize);
+                let normalized = self
+                    .fs
+                    .canonicalize(path)
+                    .await
+                    .unwrap_or_else(|_| path.clone());
                 self.spaces.spaces.iter().find(|s| s.path == normalized)
             },
         }

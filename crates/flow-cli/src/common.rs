@@ -8,7 +8,6 @@ use flow_core::{Config, Space};
 use miette::Result;
 use std::path::PathBuf;
 
-use crate::printer::Printer;
 use flow_errors::CliError;
 
 /// Output formatting arguments available for all commands.
@@ -16,26 +15,23 @@ use flow_errors::CliError;
 /// These arguments control how command output is displayed and can be
 /// embedded in any command's arguments using `#[command(flatten)]`.
 #[derive(Args, Debug, Clone)]
-pub struct OutputArgs {
-    /// Output in JSON format
+#[allow(clippy::struct_excessive_bools)]
+pub struct GlobalArgs {
+    /// Force interactive mode, prompting for all arguments.
+    #[arg(short, long, global = true)]
+    pub interactive: bool,
+
+    /// Output in JSON format.
     #[arg(long, global = true)]
     pub json: bool,
 
-    /// Detailed logging
+    /// Enable detailed logging output.
     #[arg(short, long, global = true)]
     pub verbose: bool,
 
-    /// Suppress non-error output
+    /// Suppress non-error output.
     #[arg(short, long, global = true)]
     pub quiet: bool,
-}
-
-impl OutputArgs {
-    /// Create a printer from these output arguments.
-    #[must_use]
-    pub const fn printer(&self) -> Printer {
-        Printer::new(self.json, self.verbose, self.quiet)
-    }
 }
 
 /// Arguments for commands that operate on an existing space.
@@ -46,7 +42,7 @@ impl OutputArgs {
 pub struct SpaceArgs {
     /// Output formatting options.
     #[command(flatten)]
-    pub output: OutputArgs,
+    pub output: GlobalArgs,
 
     /// Target a specific space by name or path, overriding the active space.
     #[arg(long)]
@@ -54,13 +50,6 @@ pub struct SpaceArgs {
 }
 
 impl SpaceArgs {
-    /// Creates a printer configured with these arguments' output settings.
-    #[must_use]
-    #[allow(dead_code)]
-    pub const fn printer(&self) -> Printer {
-        self.output.printer()
-    }
-
     /// Loads the target space based on these arguments.
     ///
     /// # Resolution Order
@@ -83,12 +72,14 @@ impl SpaceArgs {
         }
 
         let config = Config::load().await?;
-        let space = self
-            .space
-            .as_ref()
-            .and_then(|n| config.find(n))
-            .or_else(|| config.active())
-            .ok_or(CliError::NoActiveSpace)?;
+
+        // Find by name if provided, otherwise use active space
+        let space = match &self.space {
+            Some(name) => config.find(&name.as_str().into()).await,
+            None => None,
+        }
+        .or_else(|| config.active())
+        .ok_or(CliError::NoActiveSpace)?;
 
         Space::load(&space.name).await
     }

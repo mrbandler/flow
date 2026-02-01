@@ -3,6 +3,8 @@
 //! This module provides the [`Printer`] struct, which handles all CLI output
 //! with support for different output modes (normal, JSON, verbose, quiet).
 
+#![allow(dead_code)]
+
 use console::{style, Emoji, Term};
 use miette::{IntoDiagnostic, Result};
 use tabled::{settings::Style, Table, Tabled};
@@ -35,12 +37,6 @@ impl Printer {
     #[must_use]
     pub const fn new(json: bool, verbose: bool, quiet: bool) -> Self {
         Self { json, verbose, quiet }
-    }
-
-    /// Returns `true` if JSON output mode is enabled.
-    #[must_use]
-    pub const fn is_json(&self) -> bool {
-        self.json
     }
 
     /// Prints a plain message to stdout.
@@ -86,13 +82,13 @@ impl Printer {
     }
 
     /// Prints a debug key-value pair (only shown with `--verbose` flag).
-    pub fn debug(&self, label: impl Into<String>, value: impl Into<String>) {
+    pub fn debug(&self, label: impl AsRef<str>, value: impl AsRef<str>) {
         if self.verbose && !self.quiet && !self.json {
             let _ = Term::stdout().write_line(&format!(
                 "{}{}: {}",
                 DEBUG,
-                style(label.into()).dim(),
-                style(value.into()).dim().italic()
+                style(label.as_ref()).dim(),
+                style(value.as_ref()).dim().italic()
             ));
         }
     }
@@ -105,19 +101,19 @@ impl Printer {
     }
 
     /// Prints a section heading with a sparkle icon.
-    pub fn heading(&self, heading: impl Into<String>) {
+    pub fn heading(&self, heading: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = Term::stdout().write_line(&format!("{}{}", SPARKLE, style(heading.into()).bold().underlined()));
+            let _ = Term::stdout().write_line(&format!("{}{}", SPARKLE, style(heading.as_ref()).bold().underlined()));
         }
     }
 
     /// Prints a key-value pair with indentation.
-    pub fn kv(&self, key: impl Into<String>, value: impl Into<String>) {
+    pub fn kv(&self, key: impl AsRef<str>, value: impl AsRef<str>) {
         if !self.quiet && !self.json {
             let _ = Term::stdout().write_line(&format!(
                 "  {}: {}",
-                style(key.into()).cyan().bold(),
-                style(value.into()).white()
+                style(key.as_ref()).cyan().bold(),
+                style(value.as_ref()).white()
             ));
         }
     }

@@ -48,11 +48,11 @@
 //! ## Setting the active space
 //!
 //! ```no_run
-//! use flow_core::Config;
+//! use flow_core::{Config, Locator};
 //!
 //! # async fn example() -> miette::Result<()> {
 //! let mut config = Config::load().await?;
-//! config.set_active("personal").await?;
+//! config.set_active(&"personal".into()).await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -90,7 +90,7 @@ pub use self::types::{RegisteredSpace, Settings};
 ///
 /// ```no_run
 /// use std::path::Path;
-/// use flow_core::{Config, Space};
+/// use flow_core::{Config, Locator, Space};
 ///
 /// # async fn example() -> miette::Result<()> {
 /// // Load configuration (creates default if none exists)
@@ -101,10 +101,10 @@ pub use self::types::{RegisteredSpace, Settings};
 /// config.register(&space).await?;
 ///
 /// // Set it as active
-/// config.set_active("work").await?;
+/// config.set_active(&"work".into()).await?;
 ///
 /// // Look up a space
-/// if let Some(registered) = config.find("work") {
+/// if let Some(registered) = config.find(&"work".into()).await {
 ///     println!("Found space at: {}", registered.path.display());
 /// }
 /// # Ok(())
@@ -200,16 +200,16 @@ impl Config {
     /// # Examples
     ///
     /// ```no_run
-    /// use flow_core::Config;
+    /// use flow_core::{Config, Locator};
     ///
     /// # async fn example() -> miette::Result<()> {
     /// let mut config = Config::load().await?;
-    /// config.unregister("personal").await?;
+    /// config.unregister(&"personal".into()).await?;
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn unregister(&mut self, locator: impl Into<Locator> + Send) -> Result<()> {
-        self.inner.unregister(locator).await
+    pub async fn unregister(&mut self, locator: &Locator, delete: bool) -> Result<()> {
+        self.inner.unregister(locator, delete).await
     }
 
     /// Sets the active space.
@@ -230,15 +230,15 @@ impl Config {
     /// # Examples
     ///
     /// ```no_run
-    /// use flow_core::Config;
+    /// use flow_core::{Config, Locator};
     ///
     /// # async fn example() -> miette::Result<()> {
     /// let mut config = Config::load().await?;
-    /// config.set_active("personal").await?;
+    /// config.set_active(&"personal".into()).await?;
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn set_active(&mut self, locator: impl Into<Locator> + Send) -> Result<()> {
+    pub async fn set_active(&mut self, locator: &Locator) -> Result<()> {
         self.inner.set_active(locator).await
     }
 
@@ -303,19 +303,18 @@ impl Config {
     /// # Examples
     ///
     /// ```no_run
-    /// use flow_core::Config;
+    /// use flow_core::{Config, Locator};
     ///
     /// # async fn example() -> miette::Result<()> {
     /// let config = Config::load().await?;
-    /// if let Some(space) = config.find("personal") {
+    /// if let Some(space) = config.find(&"personal".into()).await {
     ///     println!("Found at: {}", space.path.display());
     /// }
     /// # Ok(())
     /// # }
     /// ```
-    #[must_use]
-    pub fn find(&self, locator: impl Into<Locator>) -> Option<&RegisteredSpace> {
-        self.inner.find(locator)
+    pub async fn find(&self, locator: &Locator) -> Option<&RegisteredSpace> {
+        self.inner.find(locator).await
     }
 
     /// Returns all registered spaces.

@@ -19,16 +19,19 @@ use std::path::PathBuf;
 use clap::Args;
 use flow_common::PathExt;
 use flow_core::Config;
+use flow_errors::CliError;
+use lazyinit::LazyInit;
+use miette::Result;
 use serde::Serialize;
 use tabled::Tabled;
 
-use crate::{commands::Command, common::OutputArgs};
+use crate::{commands::Command, common::GlobalArgs};
 
 /// Command-line arguments for the `list` command.
 #[derive(Args, Debug, Clone)]
 pub struct Arguments {
     #[command(flatten)]
-    pub output: OutputArgs,
+    pub globals: GlobalArgs,
 }
 
 /// Output of a successful `list` command.
@@ -43,8 +46,10 @@ pub struct Output {
 pub struct OutputSpace {
     /// The space's registered name.
     name: String,
+
     /// Path to the space's root directory.
     path: PathBuf,
+
     /// Whether this is the currently active space.
     active: bool,
 }
@@ -77,6 +82,7 @@ impl From<&OutputSpace> for SpaceRow {
 /// Lists all registered Flow spaces.
 pub struct List {
     args: Arguments,
+    config: LazyInit<Config>,
 }
 
 impl Command for List {
@@ -84,22 +90,34 @@ impl Command for List {
     type Output = Output;
 
     fn new(args: Self::Args) -> Self {
-        Self { args }
+        Self {
+            args,
+            config: LazyInit::new(),
+        }
     }
 
-    fn output_args(&self) -> &crate::common::OutputArgs {
-        &self.args.output
+    fn globals(&self) -> &crate::common::GlobalArgs {
+        &self.args.globals
     }
 
-    async fn interactive(&mut self) -> miette::Result<()> {
+    async fn init(&mut self) -> Result<()> {
+        self.config.init_once(Config::load().await?);
+
         Ok(())
     }
 
-    async fn execute(&mut self) -> miette::Result<Self::Output> {
-        let config = Config::load().await?;
+    async fn validate(&mut self) -> Result<()> {
+        if self.config.spaces().is_empty() {
+            return Err(CliError::NoSpacesRegistered.into());
+        }
 
-        let active_name = config.active().map(|s| &s.name);
-        let spaces = config
+        Ok(())
+    }
+
+    async fn execute(&mut self) -> Result<Self::Output> {
+        let active_name = self.config.active().map(|s| &s.name);
+        let spaces = self
+            .config
             .spaces()
             .iter()
             .map(|space| OutputSpace {
