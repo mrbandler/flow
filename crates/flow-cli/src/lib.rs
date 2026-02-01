@@ -34,6 +34,7 @@ use crate::commands::space;
 mod commands;
 mod common;
 mod printer;
+mod theme;
 
 /// Available CLI commands.
 ///
@@ -52,6 +53,9 @@ pub enum Commands {
 ///
 /// Returns an error if the command execution fails.
 pub async fn run(cmd: Commands) -> Result<()> {
+    // Initialize the inquire theme for consistent styling.
+    theme::init();
+
     match cmd {
         Commands::Space(space) => space.run().await?,
     }

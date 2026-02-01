@@ -11,14 +11,7 @@ use crossterm::style::Stylize;
 use miette::{IntoDiagnostic, Result};
 use tabled::{settings::Style, Table, Tabled};
 
-// Prefix symbols for different message types.
-const SUCCESS: &str = "\u{2713} "; // ✓
-const INFO: &str = "\u{2022} "; // •
-const WARN: &str = "! ";
-const ERROR: &str = "\u{2717} "; // ✗
-const STEP: &str = "\u{2192} "; // →
-const DEBUG: &str = "? ";
-const HEADING: &str = "\u{00A7} "; // §
+use crate::theme::symbols;
 
 /// Handles CLI output with support for multiple output modes.
 ///
@@ -51,35 +44,35 @@ impl Printer {
     /// Prints a success message with a green checkmark.
     pub fn success(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{}{}", SUCCESS, message.as_ref().green().bold());
+            let _ = writeln!(stdout(), "{} {}", symbols::SUCCESS, message.as_ref().green().bold());
         }
     }
 
     /// Prints an informational message with a blue info icon.
     pub fn info(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{}{}", INFO, message.as_ref().cyan());
+            let _ = writeln!(stdout(), "{} {}", symbols::INFO, message.as_ref().cyan());
         }
     }
 
     /// Prints a warning message with a yellow warning icon.
     pub fn warning(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{}{}", WARN, message.as_ref().yellow().bold());
+            let _ = writeln!(stdout(), "{} {}", symbols::WARN, message.as_ref().yellow().bold());
         }
     }
 
     /// Prints a step indicator with an arrow prefix.
     pub fn step(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{}{}", STEP, message.as_ref().dim());
+            let _ = writeln!(stdout(), "{} {}", symbols::STEP, message.as_ref().dim());
         }
     }
 
     /// Prints a verbose message (only shown with `--verbose` flag).
     pub fn verbose(&self, message: impl AsRef<str>) {
         if self.verbose && !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{}{}", DEBUG, message.as_ref().dim());
+            let _ = writeln!(stdout(), "{} {}", symbols::DEBUG, message.as_ref().dim());
         }
     }
 
@@ -88,8 +81,8 @@ impl Printer {
         if self.verbose && !self.quiet && !self.json {
             let _ = writeln!(
                 stdout(),
-                "{}{}: {}",
-                DEBUG,
+                "{} {}: {}",
+                symbols::DEBUG,
                 label.as_ref().dim(),
                 value.as_ref().dim().italic()
             );
@@ -99,14 +92,19 @@ impl Printer {
     /// Prints an error message to stderr with a red error icon.
     pub fn error(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stderr(), "{}{}", ERROR, message.as_ref().red().bold());
+            let _ = writeln!(stderr(), "{} {}", symbols::ERROR, message.as_ref().red().bold());
         }
     }
 
     /// Prints a section heading with a section symbol.
     pub fn heading(&self, heading: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{}{}", HEADING, heading.as_ref().bold().underlined());
+            let _ = writeln!(
+                stdout(),
+                "{} {}",
+                symbols::HEADING,
+                heading.as_ref().bold().underlined()
+            );
         }
     }
 
