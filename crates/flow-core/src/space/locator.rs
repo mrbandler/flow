@@ -95,7 +95,7 @@ impl From<String> for Locator {
 
 impl From<&String> for Locator {
     fn from(s: &String) -> Self {
-        Self::from(s.clone())
+        Self::from(s.as_str())
     }
 }
 
