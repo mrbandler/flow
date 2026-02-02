@@ -24,16 +24,16 @@ use std::path::PathBuf;
 
 use clap::Args;
 use flow_common::PathExt;
-use flow_core::{Config, Locator};
+use flow_core::Locator;
 use flow_errors::CliError;
 use inquire::Select;
-use lazyinit::LazyInit;
 use miette::{IntoDiagnostic, Result};
 use serde::Serialize;
 
 use crate::{
     commands::{space::SpaceOption, Command},
     common::GlobalArgs,
+    context::Context,
 };
 
 /// Command-line arguments for the `switch` command.
@@ -61,34 +61,29 @@ pub struct Output {
 ///
 /// This command changes which space is used by default when no space
 /// is explicitly specified in other commands.
-pub struct Switch {
+pub struct Switch<'a> {
     args: Arguments,
-    config: LazyInit<Config>,
+    ctx: &'a mut Context,
 }
 
-impl Command for Switch {
+impl<'a> Command<'a> for Switch<'a> {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args) -> Self {
-        Self {
-            args,
-            config: LazyInit::new(),
-        }
+    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
+        Self { args, ctx }
+    }
+
+    fn ctx(&self) -> &Context {
+        self.ctx
     }
 
     fn globals(&self) -> &crate::common::GlobalArgs {
         &self.args.globals
     }
 
-    async fn init(&mut self) -> Result<()> {
-        self.config.init_once(Config::load().await?);
-
-        Ok(())
-    }
-
     async fn validate(&mut self) -> Result<()> {
-        if self.config.spaces().is_empty() {
+        if self.ctx.config().spaces().is_empty() {
             return Err(CliError::NoSpacesRegistered.into());
         }
 
@@ -115,7 +110,7 @@ impl Command for Switch {
                 &cwd_locator
             };
 
-            let (options, default_index) = SpaceOption::from_config(&self.config, Some(default_locator));
+            let (options, default_index) = SpaceOption::from_context(self.ctx, Some(default_locator));
             let selected = Select::new("Select the space to switch to:", options)
                 .with_starting_cursor(default_index)
                 .prompt()
@@ -134,9 +129,10 @@ impl Command for Switch {
             .take()
             .ok_or_else(|| CliError::MissingArgument("locator".to_string()))?;
 
-        self.config.set_active(&locator).await?;
+        let config = self.ctx.config_mut();
+        config.set_active(&locator).await?;
 
-        let active = self.config.active().ok_or(CliError::NoActiveSpace)?;
+        let active = config.active().ok_or(CliError::NoActiveSpace)?;
 
         Ok(Output {
             name: active.name.clone(),

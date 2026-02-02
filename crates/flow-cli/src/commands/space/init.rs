@@ -20,14 +20,14 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use flow_core::{Config, Space};
+use flow_common::PathExt;
+use flow_core::Space;
+use flow_errors::CliError;
 use inquire::{Confirm, Text};
 use miette::IntoDiagnostic;
 use serde::Serialize;
 
-use crate::{commands::Command, common::GlobalArgs};
-use flow_common::PathExt;
-use flow_errors::CliError;
+use crate::{commands::Command, common::GlobalArgs, context::Context};
 
 /// Command-line arguments for the `init` command.
 #[derive(Args, Debug, Clone)]
@@ -59,16 +59,21 @@ pub struct Output {
 }
 
 /// The `init` command implementation.
-pub struct Init {
+pub struct Init<'a> {
     args: Arguments,
+    ctx: &'a mut Context,
 }
 
-impl Command for Init {
+impl<'a> Command<'a> for Init<'a> {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args) -> Self {
-        Self { args }
+    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
+        Self { args, ctx }
+    }
+
+    fn ctx(&self) -> &Context {
+        self.ctx
     }
 
     fn globals(&self) -> &GlobalArgs {
@@ -157,8 +162,7 @@ impl Command for Init {
 
         let space = Space::init(&path, &name).await?;
         if !self.args.no_register {
-            let mut config = Config::load().await?;
-
+            let config = self.ctx.config_mut();
             config.register(&space).await?;
             if config.active().is_none() {
                 config.set_active(&space.name().into()).await?;

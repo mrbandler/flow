@@ -94,6 +94,8 @@ mod filesystem;
 mod config;
 mod space;
 
+pub mod theme;
+
 pub use flow_errors::{IoError, SpaceError};
 
 pub use self::config::Config;

@@ -18,14 +18,12 @@ use std::path::PathBuf;
 
 use clap::Args;
 use flow_common::PathExt;
-use flow_core::Config;
 use flow_errors::CliError;
-use lazyinit::LazyInit;
 use miette::Result;
 use serde::Serialize;
 use tabled::Tabled;
 
-use crate::{commands::Command, common::GlobalArgs};
+use crate::{commands::Command, common::GlobalArgs, context::Context};
 
 /// Command-line arguments for the `list` command.
 #[derive(Args, Debug, Clone)]
@@ -80,34 +78,29 @@ impl From<&OutputSpace> for SpaceRow {
 }
 
 /// Lists all registered Flow spaces.
-pub struct List {
+pub struct List<'a> {
     args: Arguments,
-    config: LazyInit<Config>,
+    ctx: &'a mut Context,
 }
 
-impl Command for List {
+impl<'a> Command<'a> for List<'a> {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args) -> Self {
-        Self {
-            args,
-            config: LazyInit::new(),
-        }
+    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
+        Self { args, ctx }
+    }
+
+    fn ctx(&self) -> &Context {
+        self.ctx
     }
 
     fn globals(&self) -> &crate::common::GlobalArgs {
         &self.args.globals
     }
 
-    async fn init(&mut self) -> Result<()> {
-        self.config.init_once(Config::load().await?);
-
-        Ok(())
-    }
-
     async fn validate(&mut self) -> Result<()> {
-        if self.config.spaces().is_empty() {
+        if self.ctx.config().spaces().is_empty() {
             return Err(CliError::NoSpacesRegistered.into());
         }
 
@@ -115,9 +108,9 @@ impl Command for List {
     }
 
     async fn execute(&mut self) -> Result<Self::Output> {
-        let active_name = self.config.active().map(|s| &s.name);
-        let spaces = self
-            .config
+        let config = self.ctx.config();
+        let active_name = config.active().map(|s| &s.name);
+        let spaces = config
             .spaces()
             .iter()
             .map(|space| OutputSpace {

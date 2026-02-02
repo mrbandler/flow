@@ -66,10 +66,12 @@
 //! - Inject different filesystem implementations for testing
 //! - Potentially support different configuration backends in the future
 
+use flow_errors::ThemeError;
 use miette::Result;
 
 use crate::filesystem::LocalFilesystem;
 use crate::space::{Locator, Space};
+use crate::theme::Base16Palette;
 
 use self::default::DefaultConfig;
 use self::traits::Config as _;
@@ -361,5 +363,37 @@ impl Config {
     #[must_use]
     pub fn settings(&self) -> &Settings {
         self.inner.settings()
+    }
+
+    /// Returns the resolved base16 color palette based on the theme setting.
+    ///
+    /// This method resolves the theme string from settings to a `Base16Palette`:
+    /// - Built-in theme names are loaded from embedded definitions
+    /// - File paths are loaded from disk
+    /// - URLs are fetched over HTTP
+    /// - If no theme is configured, the default "flow" theme is used
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The built-in theme name is not recognized
+    /// - The theme file cannot be read
+    /// - The theme URL cannot be fetched
+    /// - The theme YAML is invalid
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use flow_core::Config;
+    ///
+    /// # async fn example() -> Result<(), flow_errors::ThemeError> {
+    /// let config = Config::load().await.unwrap();
+    /// let palette = config.theme().await?;
+    /// println!("Theme: {:?}", palette.scheme);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn theme(&self) -> Result<Base16Palette, ThemeError> {
+        crate::theme::resolve(self.settings().theme.as_deref()).await
     }
 }

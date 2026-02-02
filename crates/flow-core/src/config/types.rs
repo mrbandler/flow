@@ -29,22 +29,31 @@ use serde::{Deserialize, Serialize};
 ///
 /// ```json
 /// {
-///     "version": "0.1.0"
+///     "version": "0.1.0",
+///     "theme": "dracula"
 /// }
 /// ```
 ///
-/// # Future Extensions
+/// # Theme Field
 ///
-/// This struct is intentionally minimal. Future versions may add fields for:
-/// - Editor preferences
-/// - Default space settings
-/// - UI customization
+/// The `theme` field accepts:
+/// - **Built-in name**: `"dracula"`, `"nord"`, `"gruvbox-dark"`, etc.
+/// - **File path**: `"~/.config/flow/themes/my-theme.yaml"`
+/// - **URL**: `"https://raw.githubusercontent.com/.../theme.yaml"`
+/// - **Omitted**: Uses the default "flow" theme
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Settings {
     /// The Flow version that created this configuration.
     ///
     /// Used for future migrations if the configuration format changes.
     pub version: String,
+
+    /// The theme to use for CLI styling.
+    ///
+    /// Can be a built-in theme name, a file path, or a URL.
+    /// If not specified, uses the default "flow" theme.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme: Option<String>,
 }
 
 /// A registered space entry.

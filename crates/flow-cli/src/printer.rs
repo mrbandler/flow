@@ -2,16 +2,17 @@
 //!
 //! This module provides the [`Printer`] struct, which handles all CLI output
 //! with support for different output modes (normal, JSON, verbose, quiet).
+//! Colors are derived from the provided theme's base16 palette.
 
 #![allow(dead_code)]
 
 use std::io::{stderr, stdout, Write};
 
-use crossterm::style::Stylize;
+use crossterm::style::{Color, Stylize};
 use miette::{IntoDiagnostic, Result};
 use tabled::{settings::Style, Table, Tabled};
 
-use crate::theme::symbols;
+use crate::theme::{symbols, Theme};
 
 /// Handles CLI output with support for multiple output modes.
 ///
@@ -20,18 +21,25 @@ use crate::theme::symbols;
 /// - **JSON mode**: Suppresses human-readable output; only [`json`](Self::json) produces output
 /// - **Verbose mode**: Enables [`verbose`](Self::verbose) and [`debug`](Self::debug) output
 /// - **Quiet mode**: Suppresses all non-error output
-#[derive(Debug, Clone)]
-pub struct Printer {
+///
+/// Colors are determined by the provided theme's base16 palette.
+pub struct Printer<'a> {
+    theme: &'a Theme,
     json: bool,
     verbose: bool,
     quiet: bool,
 }
 
-impl Printer {
-    /// Creates a new printer with the specified output modes.
+impl<'a> Printer<'a> {
+    /// Creates a new printer with the specified theme and output modes.
     #[must_use]
-    pub const fn new(json: bool, verbose: bool, quiet: bool) -> Self {
-        Self { json, verbose, quiet }
+    pub const fn new(theme: &'a Theme, json: bool, verbose: bool, quiet: bool) -> Self {
+        Self {
+            theme,
+            json,
+            verbose,
+            quiet,
+        }
     }
 
     /// Prints a plain message to stdout.
@@ -44,35 +52,60 @@ impl Printer {
     /// Prints a success message with a green checkmark.
     pub fn success(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{} {}", symbols::SUCCESS, message.as_ref().green().bold());
+            let _ = writeln!(
+                stdout(),
+                "{} {}",
+                symbols::SUCCESS,
+                message.as_ref().with(self.theme.success()).bold()
+            );
         }
     }
 
-    /// Prints an informational message with a blue info icon.
+    /// Prints an informational message with a cyan info icon.
     pub fn info(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{} {}", symbols::INFO, message.as_ref().cyan());
+            let _ = writeln!(
+                stdout(),
+                "{} {}",
+                symbols::INFO,
+                message.as_ref().with(self.theme.info())
+            );
         }
     }
 
     /// Prints a warning message with a yellow warning icon.
     pub fn warning(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{} {}", symbols::WARN, message.as_ref().yellow().bold());
+            let _ = writeln!(
+                stdout(),
+                "{} {}",
+                symbols::WARN,
+                message.as_ref().with(self.theme.warning()).bold()
+            );
         }
     }
 
     /// Prints a step indicator with an arrow prefix.
     pub fn step(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{} {}", symbols::STEP, message.as_ref().dim());
+            let _ = writeln!(
+                stdout(),
+                "{} {}",
+                symbols::STEP,
+                message.as_ref().with(self.theme.dim())
+            );
         }
     }
 
     /// Prints a verbose message (only shown with `--verbose` flag).
     pub fn verbose(&self, message: impl AsRef<str>) {
         if self.verbose && !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "{} {}", symbols::DEBUG, message.as_ref().dim());
+            let _ = writeln!(
+                stdout(),
+                "{} {}",
+                symbols::DEBUG,
+                message.as_ref().with(self.theme.dim())
+            );
         }
     }
 
@@ -83,8 +116,8 @@ impl Printer {
                 stdout(),
                 "{} {}: {}",
                 symbols::DEBUG,
-                label.as_ref().dim(),
-                value.as_ref().dim().italic()
+                label.as_ref().with(self.theme.dim()),
+                value.as_ref().with(self.theme.dim()).italic()
             );
         }
     }
@@ -92,7 +125,12 @@ impl Printer {
     /// Prints an error message to stderr with a red error icon.
     pub fn error(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stderr(), "{} {}", symbols::ERROR, message.as_ref().red().bold());
+            let _ = writeln!(
+                stderr(),
+                "{} {}",
+                symbols::ERROR,
+                message.as_ref().with(self.theme.error()).bold()
+            );
         }
     }
 
@@ -103,7 +141,11 @@ impl Printer {
                 stdout(),
                 "{} {}",
                 symbols::HEADING,
-                heading.as_ref().bold().underlined()
+                heading
+                    .as_ref()
+                    .with(self.theme.primary())
+                    .bold()
+                    .underlined()
             );
         }
     }
@@ -111,7 +153,12 @@ impl Printer {
     /// Prints a key-value pair with indentation.
     pub fn kv(&self, key: impl AsRef<str>, value: impl AsRef<str>) {
         if !self.quiet && !self.json {
-            let _ = writeln!(stdout(), "  {}: {}", key.as_ref().cyan().bold(), value.as_ref().white());
+            let _ = writeln!(
+                stdout(),
+                "  {}: {}",
+                key.as_ref().with(self.theme.info()).bold(),
+                value.as_ref().with(Color::White)
+            );
         }
     }
 

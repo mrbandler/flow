@@ -21,14 +21,13 @@ use std::path::PathBuf;
 
 use clap::Args;
 use flow_common::PathExt;
-use flow_core::{Config, Space};
+use flow_core::Space;
 use flow_errors::CliError;
 use inquire::Text;
-use lazyinit::LazyInit;
 use miette::{IntoDiagnostic, Result};
 use serde::Serialize;
 
-use crate::{commands::Command, common::GlobalArgs};
+use crate::{commands::Command, common::GlobalArgs, context::Context};
 
 /// Command-line arguments for the `register` command.
 #[derive(Args, Debug, Clone)]
@@ -52,30 +51,25 @@ pub struct Output {
 }
 
 /// The `register` command implementation.
-pub struct Register {
+pub struct Register<'a> {
     args: Arguments,
-    config: LazyInit<Config>,
+    ctx: &'a mut Context,
 }
 
-impl Command for Register {
+impl<'a> Command<'a> for Register<'a> {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args) -> Self {
-        Self {
-            args,
-            config: LazyInit::new(),
-        }
+    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
+        Self { args, ctx }
+    }
+
+    fn ctx(&self) -> &Context {
+        self.ctx
     }
 
     fn globals(&self) -> &GlobalArgs {
         &self.args.globals
-    }
-
-    async fn init(&mut self) -> Result<()> {
-        self.config.init_once(Config::load().await?);
-
-        Ok(())
     }
 
     fn needs_interaction(&self) -> bool {
@@ -117,9 +111,10 @@ impl Command for Register {
         let space = Space::load(path).await?;
         let name = space.name().to_string();
 
-        self.config.register(&space).await?;
-        if self.config.active().is_none() {
-            self.config.set_active(&name.as_str().into()).await?;
+        let config = self.ctx.config_mut();
+        config.register(&space).await?;
+        if config.active().is_none() {
+            config.set_active(&name.as_str().into()).await?;
         }
 
         Ok(Output {

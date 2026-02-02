@@ -8,8 +8,10 @@ use std::path::PathBuf;
 
 use clap::Subcommand;
 use flow_common::PathExt;
-use flow_core::{Config, Locator};
+use flow_core::Locator;
 use miette::Result;
+
+use crate::context::Context;
 
 pub mod init;
 pub mod list;
@@ -27,10 +29,11 @@ pub struct SpaceOption {
 }
 
 impl SpaceOption {
-    /// Builds a list of space options from the config for interactive selection.
+    /// Builds a list of space options from the context's config for interactive selection.
     ///
     /// Returns the options and the index of the default selection based on the provided locator.
-    pub fn from_config(config: &Config, default_locator: Option<&Locator>) -> (Vec<Self>, usize) {
+    pub fn from_context(ctx: &Context, default_locator: Option<&Locator>) -> (Vec<Self>, usize) {
+        let config = ctx.config();
         let active = config.active().map(|s| s.name.as_str());
         let registered = config.spaces();
 
@@ -93,15 +96,15 @@ impl Space {
     /// # Errors
     ///
     /// Returns an error if the command execution fails.
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self, ctx: &mut Context) -> Result<()> {
         use crate::commands::Command;
 
         match self {
-            Self::Init(args) => init::Init::new(args).run().await,
-            Self::List(args) => list::List::new(args).run().await,
-            Self::Switch(args) => switch::Switch::new(args).run().await,
-            Self::Register(args) => register::Register::new(args).run().await,
-            Self::Unregister(args) => unregister::Unregister::new(args).run().await,
+            Self::Init(args) => init::Init::new(args, ctx).run().await,
+            Self::List(args) => list::List::new(args, ctx).run().await,
+            Self::Switch(args) => switch::Switch::new(args, ctx).run().await,
+            Self::Register(args) => register::Register::new(args, ctx).run().await,
+            Self::Unregister(args) => unregister::Unregister::new(args, ctx).run().await,
         }
     }
 }

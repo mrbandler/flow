@@ -30,16 +30,16 @@ use std::path::PathBuf;
 
 use clap::Args;
 use flow_common::PathExt;
-use flow_core::{Config, Locator, SpaceError};
+use flow_core::{Locator, SpaceError};
 use flow_errors::CliError;
 use inquire::{Confirm, Select};
-use lazyinit::LazyInit;
 use miette::{IntoDiagnostic, Result};
 use serde::Serialize;
 
 use crate::{
     commands::{space::SpaceOption, Command},
     common::GlobalArgs,
+    context::Context,
 };
 
 /// Command-line arguments for the `unregister` command.
@@ -74,30 +74,25 @@ pub struct Output {
 ///
 /// This command removes a space from Flow's registry. Optionally,
 /// the space's files can be deleted from disk with the `--delete` flag.
-pub struct Unregister {
+pub struct Unregister<'a> {
     args: Arguments,
-    config: LazyInit<Config>,
+    ctx: &'a mut Context,
 }
 
-impl Command for Unregister {
+impl<'a> Command<'a> for Unregister<'a> {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args) -> Self {
-        Self {
-            args,
-            config: LazyInit::new(),
-        }
+    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
+        Self { args, ctx }
+    }
+
+    fn ctx(&self) -> &Context {
+        self.ctx
     }
 
     fn globals(&self) -> &GlobalArgs {
         &self.args.globals
-    }
-
-    async fn init(&mut self) -> Result<()> {
-        self.config.init_once(Config::load().await?);
-
-        Ok(())
     }
 
     fn needs_interaction(&self) -> bool {
@@ -120,7 +115,7 @@ impl Command for Unregister {
                 &cwd_locator
             };
 
-            let (options, default_index) = SpaceOption::from_config(&self.config, Some(default_locator));
+            let (options, default_index) = SpaceOption::from_context(self.ctx, Some(default_locator));
             let selected = Select::new("Select the space to unregister:", options)
                 .with_starting_cursor(default_index)
                 .prompt()
@@ -154,8 +149,8 @@ impl Command for Unregister {
             .take()
             .ok_or_else(|| CliError::MissingArgument("locator".to_string()))?;
 
-        let space = self
-            .config
+        let config = self.ctx.config_mut();
+        let space = config
             .find(&locator)
             .await
             .ok_or_else(|| SpaceError::NotRegistered(locator.to_string()))?;
@@ -163,7 +158,7 @@ impl Command for Unregister {
         let name = space.name.clone();
         let path = space.path.clone();
 
-        self.config.unregister(&locator, self.args.delete).await?;
+        config.unregister(&locator, self.args.delete).await?;
 
         Ok(Output {
             name,

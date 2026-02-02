@@ -5,7 +5,7 @@
 
 use miette::Result;
 
-use crate::{common::GlobalArgs, printer::Printer};
+use crate::{common::GlobalArgs, context::Context, printer::Printer};
 
 pub mod space;
 
@@ -24,26 +24,34 @@ pub mod space;
 ///
 /// # Type Parameters
 ///
+/// - `'a` - The lifetime of the borrowed context
 /// - `Args` - The clap arguments struct for this command
 /// - `Output` - The result type, must be serializable for JSON output
 ///
 /// # Example
 ///
 /// ```ignore
-/// struct MyCommand { args: MyArgs }
+/// struct MyCommand<'a> {
+///     args: MyArgs,
+///     ctx: &'a mut Context,
+/// }
 ///
-/// impl Command for MyCommand {
+/// impl<'a> Command<'a> for MyCommand<'a> {
 ///     type Args = MyArgs;
 ///     type Output = MyOutput;
 ///
-///     fn new(args: Self::Args) -> Self {
-///         Self { args }
+///     fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
+///         Self { args, ctx }
+///     }
+///
+///     fn ctx(&self) -> &Context {
+///         self.ctx
 ///     }
 ///
 ///     // ... implement other required methods
 /// }
 /// ```
-pub trait Command: Sized {
+pub trait Command<'a>: Sized {
     /// The argument type for this command, typically a clap `Args` struct.
     type Args;
 
@@ -52,16 +60,24 @@ pub trait Command: Sized {
     /// Must implement [`Serialize`](serde::Serialize) for JSON output support.
     type Output: serde::Serialize;
 
-    /// Creates a new command instance from parsed arguments.
-    fn new(args: Self::Args) -> Self;
+    /// Creates a new command instance from parsed arguments and context.
+    fn new(args: Self::Args, ctx: &'a mut Context) -> Self;
+
+    /// Returns a reference to the application context.
+    fn ctx(&self) -> &Context;
 
     /// Returns the global arguments.
     fn globals(&self) -> &GlobalArgs;
 
-    /// Creates a printer configured with the command's output settings.
+    /// Creates a printer configured with the command's output settings and theme.
     #[must_use]
-    fn printer(&self) -> Printer {
-        Printer::new(self.globals().json, self.globals().verbose, self.globals().quiet)
+    fn printer(&self) -> Printer<'_> {
+        Printer::new(
+            self.ctx().theme(),
+            self.globals().json,
+            self.globals().verbose,
+            self.globals().quiet,
+        )
     }
 
     /// Performs async initialization before the command runs.
@@ -143,19 +159,20 @@ pub trait Command: Sized {
     ///
     /// Returns an error if any step fails.
     async fn run(&mut self) -> Result<()> {
-        self.printer().verbose("Initializing...");
+        self.printer().verbose("Initializing command...");
         self.init().await?;
 
-        self.printer().verbose("Validating...");
+        self.printer()
+            .verbose("Validating command prerequisites...");
         self.validate().await?;
 
-        self.printer().verbose("Checking to interactive mode...");
+        self.printer().verbose("Checking for interactive mode...");
         if self.needs_interaction() && !self.globals().json {
             self.printer().verbose("Entering interactive mode");
             self.interactive().await?;
         }
 
-        self.printer().verbose("Executing...");
+        self.printer().verbose("Executing command...");
         let output = self.execute().await?;
         if self.globals().json {
             self.printer().json(&output)?;

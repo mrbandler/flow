@@ -29,10 +29,11 @@
 use clap::Subcommand;
 use miette::Result;
 
-use crate::commands::space;
+use crate::{commands::space, context::Context};
 
 mod commands;
 mod common;
+mod context;
 mod printer;
 mod theme;
 
@@ -53,11 +54,10 @@ pub enum Commands {
 ///
 /// Returns an error if the command execution fails.
 pub async fn run(cmd: Commands) -> Result<()> {
-    // Initialize the inquire theme for consistent styling.
-    theme::init();
+    let mut ctx = Context::load().await?;
 
     match cmd {
-        Commands::Space(space) => space.run().await?,
+        Commands::Space(space) => space.run(&mut ctx).await?,
     }
 
     Ok(())

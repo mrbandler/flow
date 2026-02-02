@@ -33,7 +33,9 @@
 mod cli;
 mod io;
 mod space;
+mod theme;
 
 pub use cli::CliError;
 pub use io::IoError;
 pub use space::SpaceError;
+pub use theme::ThemeError;

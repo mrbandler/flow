@@ -130,6 +130,7 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
         } else {
             let settings = Settings {
                 version: env!("CARGO_PKG_VERSION").to_string(),
+                theme: None,
             };
             let json = serde_json::to_string_pretty(&settings).into_diagnostic()?;
             fs.write(&settings_path, json.as_bytes()).await?;
