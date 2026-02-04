@@ -61,13 +61,13 @@ const FLOW_DIR: &str = ".flow";
 ///
 /// This file stores the space name, version, and other metadata
 /// needed to identify and manage the space.
-const METADATA_FILE: &str = "space.json";
+const METADATA_FILE: &str = "config.json";
 
 /// The filename for the Loro CRDT document snapshot.
 ///
 /// This file contains a binary snapshot of the Loro CRDT document,
 /// which enables offline-first collaboration and conflict resolution.
-const DOCUMENT_FILE: &str = "space.loro";
+const DOCUMENT_FILE: &str = "history.loro";
 
 /// The directory name for journal entries.
 ///
@@ -217,12 +217,8 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
     /// This method will:
     ///
     /// 1. Resolve the [`Locator`] to a filesystem path
-    /// 2. Read and deserialize the space metadata from `.flow/space.json`
-    /// 3. Load the Loro CRDT document from `.flow/space.loro`
-    ///
-    /// # Unimplemented
-    ///
-    /// This method is not yet implemented and will panic if called.
+    /// 2. Read and deserialize the space metadata from `.flow/config.json`
+    /// 3. Load the Loro CRDT document from `.flow/history.loro`
     async fn load(fs: Self::Fs, locator: Locator) -> Result<Self> {
         let path = match locator {
             Locator::Name(_name) => todo!("Look up the path through the name of the space"),
@@ -244,6 +240,22 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
             metadata,
             doc,
         })
+    }
+
+    fn is_valid(path: impl AsRef<Path>) -> bool {
+        let path = path.as_ref();
+        let flow_dir = path.join(FLOW_DIR);
+        let metadata_path = flow_dir.join(METADATA_FILE);
+        let document_path = flow_dir.join(DOCUMENT_FILE);
+
+        path.exists()
+            && path.is_dir()
+            && flow_dir.exists()
+            && flow_dir.is_dir()
+            && metadata_path.exists()
+            && metadata_path.is_file()
+            && document_path.exists()
+            && document_path.is_file()
     }
 
     fn name(&self) -> &str {

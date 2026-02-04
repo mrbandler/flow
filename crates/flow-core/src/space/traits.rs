@@ -113,6 +113,24 @@ pub trait Space: Sized + Send + Sync {
     /// - The filesystem cannot be read.
     async fn load(fs: Self::Fs, locator: Locator) -> Result<Self>;
 
+    /// Checks if the given path is a valid space.
+    ///
+    /// A valid space is identified by the presence of the `.flow/` directory
+    /// and a valid configuration file within it.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The directory path to check.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// assert!(DefaultSpace::is_valid("./existing-space"));
+    /// assert!(!DefaultSpace::is_valid("./non-space-directory"));
+    /// ```
+    #[must_use]
+    fn is_valid(path: impl AsRef<Path>) -> bool;
+
     /// Returns the name of the space.
     ///
     /// The name is a human-readable identifier for the space, set during
@@ -125,6 +143,7 @@ pub trait Space: Sized + Send + Sync {
     /// let space = DefaultSpace::init(fs, "./my-space", "personal").await?;
     /// assert_eq!(space.name(), "personal");
     /// ```
+    #[must_use]
     fn name(&self) -> &str;
 
     /// Returns the filesystem path to the space directory.
@@ -138,5 +157,6 @@ pub trait Space: Sized + Send + Sync {
     /// let space = DefaultSpace::init(fs, "./my-space", "personal").await?;
     /// assert_eq!(space.path(), Path::new("./my-space"));
     /// ```
+    #[must_use]
     fn path(&self) -> &Path;
 }

@@ -187,6 +187,35 @@ impl Space {
         Ok(Self { inner })
     }
 
+    /// Checks if the given path is a valid Flow space.
+    ///
+    /// A valid Flow space is identified by the presence of
+    /// the `.flow/` directory and required configuration files.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The filesystem path to check.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::path::Path;
+    /// use flow_core::Space;
+    ///
+    /// # async fn example() -> miette::Result<()> {
+    /// let is_valid = Space::is_valid(Path::new("./my-notes"));
+    /// if is_valid {
+    ///    println!("This is a valid Flow space.");
+    /// } else {
+    ///   println!("This is NOT a valid Flow space.");
+    /// }
+    /// # Ok(())
+    /// # }
+    #[must_use]
+    pub fn is_valid(path: impl AsRef<Path>) -> bool {
+        DefaultSpace::<LocalFilesystem>::is_valid(path)
+    }
+
     /// Returns the name of the space.
     ///
     /// The name is a human-readable identifier for the space, set during

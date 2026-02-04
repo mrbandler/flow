@@ -27,7 +27,7 @@ use inquire::Text;
 use miette::{IntoDiagnostic, Result};
 use serde::Serialize;
 
-use crate::{commands::Command, common::GlobalArgs, context::Context};
+use crate::{commands::Command, common::GlobalArgs, context::Context, validators::PathIsValidSpaceValidator};
 
 /// Command-line arguments for the `register` command.
 #[derive(Args, Debug, Clone)]
@@ -92,6 +92,7 @@ impl<'a> Command<'a> for Register<'a> {
             let path_input = Text::new("Path:")
                 .with_default(&default)
                 .with_help_message("Path to the existing space to register")
+                .with_validator(PathIsValidSpaceValidator::new())
                 .prompt()
                 .into_diagnostic()?;
 
