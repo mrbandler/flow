@@ -5,49 +5,54 @@
 
 use flow_errors::ThemeError;
 
-use super::{Base16Palette, HexColor};
+use crate::palette::{Base16Palette, HexColor};
 
-/// Gets a built-in theme by name.
-///
-/// # Errors
-///
-/// Returns `ThemeError::UnknownBuiltIn` if the theme name is not recognized.
-pub fn get(name: &str) -> Result<Base16Palette, ThemeError> {
-    match name.to_lowercase().as_str() {
-        "flow" => Ok(flow()),
-        "dracula" => Ok(dracula()),
-        "nord" => Ok(nord()),
-        "gruvbox-dark" | "gruvbox" => Ok(gruvbox_dark()),
-        "solarized-dark" | "solarized" => Ok(solarized_dark()),
-        "catppuccin-mocha" | "catppuccin" => Ok(catppuccin_mocha()),
-        "tokyo-night" | "tokyonight" => Ok(tokyo_night()),
-        "one-dark" | "onedark" => Ok(one_dark()),
-        "monokai" => Ok(monokai()),
-        "rose-pine" | "rosepine" => Ok(rose_pine()),
-        _ => Err(ThemeError::UnknownBuiltIn(name.to_string())),
+impl Base16Palette {
+    /// Gets a built-in theme by name.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ThemeError::UnknownBuiltIn` if the theme name is not recognized.
+    pub fn builtin(name: &str) -> Result<Self, ThemeError> {
+        match name.to_lowercase().as_str() {
+            "flow" => Ok(flow()),
+            "dracula" => Ok(dracula()),
+            "nord" => Ok(nord()),
+            "gruvbox-dark" | "gruvbox" => Ok(gruvbox_dark()),
+            "solarized-dark" | "solarized" => Ok(solarized_dark()),
+            "catppuccin-mocha" | "catppuccin" | "mocha" => Ok(catppuccin_mocha()),
+            "catppuccin-frappe" | "frappe" => Ok(catppuccin_frappe()),
+            "catppuccin-macchiato" | "macchiato" => Ok(catppuccin_macchiato()),
+            "tokyo-night" | "tokyonight" => Ok(tokyo_night()),
+            "one-dark" | "onedark" => Ok(one_dark()),
+            "monokai" => Ok(monokai()),
+            "rose-pine" | "rosepine" => Ok(rose_pine()),
+            _ => Err(ThemeError::UnknownBuiltIn(name.to_string())),
+        }
+    }
+
+    /// Returns a list of all available built-in theme names.
+    #[must_use]
+    pub fn builtins() -> Vec<&'static str> {
+        vec![
+            "flow",
+            "dracula",
+            "nord",
+            "gruvbox-dark",
+            "solarized-dark",
+            "catppuccin-mocha",
+            "catppuccin-frappe",
+            "catppuccin-macchiato",
+            "tokyo-night",
+            "one-dark",
+            "monokai",
+            "rose-pine",
+        ]
     }
 }
 
-/// Returns a list of all available built-in theme names.
-#[must_use]
-pub fn list() -> Vec<&'static str> {
-    vec![
-        "flow",
-        "dracula",
-        "nord",
-        "gruvbox-dark",
-        "solarized-dark",
-        "catppuccin-mocha",
-        "tokyo-night",
-        "one-dark",
-        "monokai",
-        "rose-pine",
-    ]
-}
-
 /// Flow's default theme - based on the original cyan/green/red CLI colors.
-#[must_use]
-pub fn flow() -> Base16Palette {
+fn flow() -> Base16Palette {
     Base16Palette {
         scheme: Some("Flow".to_string()),
         author: Some("Flow Contributors".to_string()),
@@ -71,8 +76,7 @@ pub fn flow() -> Base16Palette {
 }
 
 /// Dracula theme - popular dark theme with purple and pink accents.
-#[must_use]
-pub fn dracula() -> Base16Palette {
+fn dracula() -> Base16Palette {
     Base16Palette {
         scheme: Some("Dracula".to_string()),
         author: Some("Zeno Rocha".to_string()),
@@ -96,8 +100,7 @@ pub fn dracula() -> Base16Palette {
 }
 
 /// Nord theme - arctic, north-bluish color palette.
-#[must_use]
-pub fn nord() -> Base16Palette {
+fn nord() -> Base16Palette {
     Base16Palette {
         scheme: Some("Nord".to_string()),
         author: Some("Arctic Ice Studio".to_string()),
@@ -121,8 +124,7 @@ pub fn nord() -> Base16Palette {
 }
 
 /// Gruvbox Dark theme - retro groove color scheme.
-#[must_use]
-pub fn gruvbox_dark() -> Base16Palette {
+fn gruvbox_dark() -> Base16Palette {
     Base16Palette {
         scheme: Some("Gruvbox Dark".to_string()),
         author: Some("morhetz".to_string()),
@@ -146,8 +148,7 @@ pub fn gruvbox_dark() -> Base16Palette {
 }
 
 /// Solarized Dark theme - precision colors for machines and people.
-#[must_use]
-pub fn solarized_dark() -> Base16Palette {
+fn solarized_dark() -> Base16Palette {
     Base16Palette {
         scheme: Some("Solarized Dark".to_string()),
         author: Some("Ethan Schoonover".to_string()),
@@ -171,8 +172,7 @@ pub fn solarized_dark() -> Base16Palette {
 }
 
 /// Catppuccin Mocha - soothing pastel theme.
-#[must_use]
-pub fn catppuccin_mocha() -> Base16Palette {
+fn catppuccin_mocha() -> Base16Palette {
     Base16Palette {
         scheme: Some("Catppuccin Mocha".to_string()),
         author: Some("Catppuccin".to_string()),
@@ -195,9 +195,56 @@ pub fn catppuccin_mocha() -> Base16Palette {
     }
 }
 
+/// Catppuccin Frappé - soothing pastel theme (medium dark).
+fn catppuccin_frappe() -> Base16Palette {
+    Base16Palette {
+        scheme: Some("Catppuccin Frappé".to_string()),
+        author: Some("Catppuccin".to_string()),
+        base00: HexColor::new("303446"), // Base
+        base01: HexColor::new("292c3c"), // Mantle
+        base02: HexColor::new("414559"), // Surface0
+        base03: HexColor::new("51576d"), // Surface1
+        base04: HexColor::new("626880"), // Surface2
+        base05: HexColor::new("c6d0f5"), // Text
+        base06: HexColor::new("f2d5cf"), // Rosewater
+        base07: HexColor::new("babbf1"), // Lavender
+        base08: HexColor::new("e78284"), // Red
+        base09: HexColor::new("ef9f76"), // Peach
+        base0a: HexColor::new("e5c890"), // Yellow
+        base0b: HexColor::new("a6d189"), // Green
+        base0c: HexColor::new("81c8be"), // Teal
+        base0d: HexColor::new("8caaee"), // Blue
+        base0e: HexColor::new("ca9ee6"), // Mauve
+        base0f: HexColor::new("eebebe"), // Flamingo
+    }
+}
+
+/// Catppuccin Macchiato - soothing pastel theme (medium).
+fn catppuccin_macchiato() -> Base16Palette {
+    Base16Palette {
+        scheme: Some("Catppuccin Macchiato".to_string()),
+        author: Some("Catppuccin".to_string()),
+        base00: HexColor::new("24273a"), // Base
+        base01: HexColor::new("1e2030"), // Mantle
+        base02: HexColor::new("363a4f"), // Surface0
+        base03: HexColor::new("494d64"), // Surface1
+        base04: HexColor::new("5b6078"), // Surface2
+        base05: HexColor::new("cad3f5"), // Text
+        base06: HexColor::new("f4dbd6"), // Rosewater
+        base07: HexColor::new("b7bdf8"), // Lavender
+        base08: HexColor::new("ed8796"), // Red
+        base09: HexColor::new("f5a97f"), // Peach
+        base0a: HexColor::new("eed49f"), // Yellow
+        base0b: HexColor::new("a6da95"), // Green
+        base0c: HexColor::new("8bd5ca"), // Teal
+        base0d: HexColor::new("8aadf4"), // Blue
+        base0e: HexColor::new("c6a0f6"), // Mauve
+        base0f: HexColor::new("f0c6c6"), // Flamingo
+    }
+}
+
 /// Tokyo Night theme - clean, dark theme inspired by Tokyo city lights.
-#[must_use]
-pub fn tokyo_night() -> Base16Palette {
+fn tokyo_night() -> Base16Palette {
     Base16Palette {
         scheme: Some("Tokyo Night".to_string()),
         author: Some("enkia".to_string()),
@@ -221,8 +268,7 @@ pub fn tokyo_night() -> Base16Palette {
 }
 
 /// One Dark theme - Atom's iconic dark theme.
-#[must_use]
-pub fn one_dark() -> Base16Palette {
+fn one_dark() -> Base16Palette {
     Base16Palette {
         scheme: Some("One Dark".to_string()),
         author: Some("Atom".to_string()),
@@ -246,8 +292,7 @@ pub fn one_dark() -> Base16Palette {
 }
 
 /// Monokai theme - the classic Sublime Text theme.
-#[must_use]
-pub fn monokai() -> Base16Palette {
+fn monokai() -> Base16Palette {
     Base16Palette {
         scheme: Some("Monokai".to_string()),
         author: Some("Wimer Hazenberg".to_string()),
@@ -271,8 +316,7 @@ pub fn monokai() -> Base16Palette {
 }
 
 /// Rosé Pine theme - all natural pine, faux fur and a bit of soho vibes.
-#[must_use]
-pub fn rose_pine() -> Base16Palette {
+fn rose_pine() -> Base16Palette {
     Base16Palette {
         scheme: Some("Rosé Pine".to_string()),
         author: Some("Rosé Pine".to_string()),
@@ -301,28 +345,36 @@ mod tests {
 
     #[test]
     fn test_get_builtin_themes() {
-        for name in list() {
-            assert!(get(name).is_ok(), "Failed to get theme: {name}");
+        for name in Base16Palette::builtins() {
+            assert!(Base16Palette::builtin(name).is_ok(), "Failed to get theme: {name}");
         }
     }
 
     #[test]
     fn test_get_unknown_theme() {
-        assert!(matches!(get("nonexistent"), Err(ThemeError::UnknownBuiltIn(_))));
+        assert!(matches!(
+            Base16Palette::builtin("nonexistent"),
+            Err(ThemeError::UnknownBuiltIn(_))
+        ));
     }
 
     #[test]
     fn test_case_insensitive() {
-        assert!(get("DRACULA").is_ok());
-        assert!(get("Dracula").is_ok());
-        assert!(get("dracula").is_ok());
+        assert!(Base16Palette::builtin("DRACULA").is_ok());
+        assert!(Base16Palette::builtin("Dracula").is_ok());
+        assert!(Base16Palette::builtin("dracula").is_ok());
     }
 
     #[test]
     fn test_aliases() {
-        assert!(get("gruvbox").is_ok());
-        assert!(get("gruvbox-dark").is_ok());
-        assert!(get("catppuccin").is_ok());
-        assert!(get("catppuccin-mocha").is_ok());
+        assert!(Base16Palette::builtin("gruvbox").is_ok());
+        assert!(Base16Palette::builtin("gruvbox-dark").is_ok());
+        assert!(Base16Palette::builtin("catppuccin").is_ok());
+        assert!(Base16Palette::builtin("catppuccin-mocha").is_ok());
+        assert!(Base16Palette::builtin("mocha").is_ok());
+        assert!(Base16Palette::builtin("catppuccin-frappe").is_ok());
+        assert!(Base16Palette::builtin("frappe").is_ok());
+        assert!(Base16Palette::builtin("catppuccin-macchiato").is_ok());
+        assert!(Base16Palette::builtin("macchiato").is_ok());
     }
 }

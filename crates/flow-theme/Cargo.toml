@@ -1,5 +1,5 @@
 [package]
-name = "flow-cli"
+name = "flow-theme"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -13,19 +13,12 @@ categories.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-flow-common = { workspace = true }
-flow-core = { workspace = true }
 flow-errors = { workspace = true }
-flow-theme = { workspace = true }
-clap = { workspace = true }
 tokio = { workspace = true }
 miette = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
-inquire = { version = "0.9.2", features = ["date", "editor"] }
-lazyinit = "0.2"
-crossterm = "0.29"
-tabled = "0.17"
+serde_yaml = "0.9"
+reqwest = { version = "0.12", features = ["rustls-tls"] }
 
 [lints]
 workspace = true

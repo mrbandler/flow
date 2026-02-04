@@ -27,7 +27,12 @@ use inquire::{Confirm, Text};
 use miette::IntoDiagnostic;
 use serde::Serialize;
 
-use crate::{commands::Command, common::GlobalArgs, context::Context};
+use crate::{
+    commands::Command,
+    common::GlobalArgs,
+    context::Context,
+    validators::{NameAlreadyRegisteredValidator, PathAlreadyExistsValidator},
+};
 
 /// Command-line arguments for the `init` command.
 #[derive(Args, Debug, Clone)]
@@ -100,6 +105,7 @@ impl<'a> Command<'a> for Init<'a> {
             let path_input = Text::new("Path:")
                 .with_default(&default)
                 .with_help_message("Path where the space will be initialized")
+                .with_validator(PathAlreadyExistsValidator::new())
                 .prompt()
                 .into_diagnostic()?;
 
@@ -116,7 +122,9 @@ impl<'a> Command<'a> for Init<'a> {
                     .map(String::from)
             });
 
-            let mut prompt = Text::new("Name:").with_help_message("Name of the space");
+            let mut prompt = Text::new("Name:")
+                .with_help_message("Name of the space")
+                .with_validator(NameAlreadyRegisteredValidator::new(self.ctx.config()));
             if let Some(d) = &default {
                 prompt = prompt.with_default(d);
             }
@@ -172,11 +180,7 @@ impl<'a> Command<'a> for Init<'a> {
         Ok(Output { name, path })
     }
 
-    fn finalize(&self, output: &Self::Output) {
-        let printer = self.printer();
-
-        printer.success("Space initialized:");
-        printer.kv("Name", &output.name);
-        printer.kv("Path", output.path.normalize_to_string());
+    fn finalize(&self, _output: &Self::Output) {
+        self.printer().success("Space initialized");
     }
 }

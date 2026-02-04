@@ -140,11 +140,7 @@ impl<'a> Command<'a> for Switch<'a> {
         })
     }
 
-    fn finalize(&self, output: &Self::Output) {
-        let printer = self.printer();
-
-        printer.success("Active space switched to:");
-        printer.kv("Name", &output.name);
-        printer.kv("Path", output.path.normalize_to_string());
+    fn finalize(&self, _output: &Self::Output) {
+        self.printer().success("Active space switched");
     }
 }

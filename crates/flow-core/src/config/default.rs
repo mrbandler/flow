@@ -54,6 +54,7 @@ const SPACES_FILE: &str = "spaces.json";
 ///
 /// * `F` - The filesystem implementation to use for all I/O operations.
 ///   Must implement [`Filesystem`] and be thread-safe (`Send + Sync`).
+#[derive(Debug, Clone)]
 pub struct DefaultConfig<F: Filesystem> {
     /// The filesystem backend for all I/O operations.
     fs: F,

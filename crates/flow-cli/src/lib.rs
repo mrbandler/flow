@@ -36,6 +36,7 @@ mod common;
 mod context;
 mod printer;
 mod theme;
+mod validators;
 
 /// Available CLI commands.
 ///

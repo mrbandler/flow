@@ -636,6 +636,7 @@ dependencies = [
  "flow-common",
  "flow-core",
  "flow-errors",
+ "flow-theme",
  "inquire",
  "lazyinit",
  "miette",
@@ -661,10 +662,8 @@ dependencies = [
  "flow-errors",
  "loro",
  "miette",
- "reqwest",
  "serde",
  "serde_json",
- "serde_yaml",
  "tokio",
 ]
 
@@ -693,6 +692,18 @@ dependencies = [
  "clap",
  "miette",
  "thiserror 2.0.17",
+ "tokio",
+]
+
+[[package]]
+name = "flow-theme"
+version = "0.1.0"
+dependencies = [
+ "flow-errors",
+ "miette",
+ "reqwest",
+ "serde",
+ "serde_yaml",
  "tokio",
 ]
 

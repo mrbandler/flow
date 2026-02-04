@@ -24,7 +24,7 @@ pub enum ThemeError {
     #[error("Unknown built-in theme: {0}")]
     #[diagnostic(
         code(flow::theme::unknown_builtin),
-        help("Available themes: flow, dracula, nord, gruvbox-dark, solarized-dark, catppuccin-mocha, tokyo-night, one-dark, monokai, rose-pine")
+        help("Available themes: flow, dracula, nord, gruvbox-dark, solarized-dark, catppuccin-mocha, catppuccin-frappe, catppuccin-macchiato, tokyo-night, one-dark, monokai, rose-pine")
     )]
     UnknownBuiltIn(String),
 

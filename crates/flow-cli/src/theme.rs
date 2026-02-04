@@ -17,11 +17,10 @@
 //! which loads the palette from config and registers it for `inquire` prompts.
 //! Commands access the theme through the context.
 
-#![allow(dead_code)]
-
 use crossterm::style::Color as CrosstermColor;
-use flow_core::theme::{Base16Palette, HexColor};
-use inquire::ui::{Attributes, Color as InquireColor, RenderConfig, StyleSheet, Styled};
+use flow_theme::{Base16Palette, HexColor, Theme};
+use inquire::ui::{Attributes, Color as InquireColor, ErrorMessageRenderConfig, RenderConfig, StyleSheet, Styled};
+use tabled::settings::Color as TabledColor;
 
 /// Symbols used in the CLI theme.
 ///
@@ -46,17 +45,18 @@ pub mod symbols {
     pub const HEADING: &str = "\u{00A7}"; // §
 }
 
-/// A theme instance containing a base16 color palette.
+/// A theme instance containing a base16 color palette with pre-computed colors.
 ///
-/// The theme converts base16 colors to the appropriate color types for
-/// inquire prompts and crossterm terminal output.
+/// Colors are converted from hex once at construction time and cached for
+/// efficient access. The theme provides colors for both `inquire` prompts
+/// and `crossterm` terminal output.
 #[derive(Debug, Clone)]
-pub struct Theme {
+pub struct CliTheme {
     palette: Base16Palette,
 }
 
-impl Theme {
-    /// Creates a new theme from a base16 palette.
+impl CliTheme {
+    /// Creates a new theme from a base16 palette, pre-computing all colors.
     #[must_use]
     pub const fn new(palette: Base16Palette) -> Self {
         Self { palette }
@@ -65,16 +65,48 @@ impl Theme {
     /// Creates the inquire render configuration for this theme.
     #[must_use]
     pub fn render_config(&self) -> RenderConfig<'static> {
+        let prompt_prefix = Styled::new(symbols::PROMPT).with_fg(self.primary().to_inquire());
+        let answered_prompt_prefix = Styled::new(symbols::SUCCESS).with_fg(self.success().to_inquire());
+        let prompt = StyleSheet::new()
+            .with_fg(self.primary().to_inquire())
+            .with_attr(Attributes::BOLD);
+        let default_value = StyleSheet::new().with_fg(self.dim().to_inquire());
+        let placeholder = StyleSheet::new()
+            .with_fg(self.dim().to_inquire())
+            .with_attr(Attributes::ITALIC);
+        let help_message = StyleSheet::new()
+            .with_fg(self.dim().to_inquire())
+            .with_attr(Attributes::ITALIC);
+        let text_input = StyleSheet::empty();
+        let error_message = ErrorMessageRenderConfig::default_colored()
+            .with_prefix(Styled::new(symbols::ERROR).with_fg(self.error().to_inquire()))
+            .with_message(StyleSheet::new().with_fg(self.error().to_inquire()));
+        let answer = StyleSheet::new().with_fg(self.foreground().to_inquire());
+        let canceled_prompt_indicator = Styled::new("<canceled>").with_fg(self.error().to_inquire());
+        let highlighted_option_prefix = Styled::new(symbols::STEP).with_fg(self.highlight().to_inquire());
+        let selected_checkbox = Styled::new("[x]").with_fg(self.success().to_inquire());
+        let unselected_checkbox = Styled::new("[ ]").with_fg(self.dim().to_inquire());
+        let selected_option = Some(
+            StyleSheet::new()
+                .with_fg(self.palette.base09.to_inquire())
+                .with_attr(Attributes::BOLD),
+        );
+
         RenderConfig {
-            prompt_prefix: Styled::new(symbols::PROMPT).with_fg(self.inquire_primary()),
-            answered_prompt_prefix: Styled::new(symbols::SUCCESS).with_fg(self.inquire_success()),
-            highlighted_option_prefix: Styled::new(symbols::STEP).with_fg(self.inquire_info()),
-            error_message: inquire::ui::ErrorMessageRenderConfig::default_colored()
-                .with_prefix(Styled::new(symbols::ERROR).with_fg(self.inquire_error())),
-            help_message: StyleSheet::new()
-                .with_fg(self.inquire_dim())
-                .with_attr(Attributes::ITALIC),
-            answer: StyleSheet::new().with_fg(self.inquire_success()),
+            prompt_prefix,
+            answered_prompt_prefix,
+            prompt,
+            default_value,
+            placeholder,
+            help_message,
+            text_input,
+            error_message,
+            answer,
+            canceled_prompt_indicator,
+            highlighted_option_prefix,
+            selected_checkbox,
+            unselected_checkbox,
+            selected_option,
             ..RenderConfig::default_colored()
         }
     }
@@ -83,92 +115,50 @@ impl Theme {
     pub fn register(&self) {
         inquire::set_global_render_config(self.render_config());
     }
+}
 
-    // --- Crossterm colors for printer ---
-
-    /// Returns the success color (green, base0B).
-    #[must_use]
-    pub fn success(&self) -> CrosstermColor {
-        to_crossterm(&self.palette.base0b)
-    }
-
-    /// Returns the error color (red, base08).
-    #[must_use]
-    pub fn error(&self) -> CrosstermColor {
-        to_crossterm(&self.palette.base08)
-    }
-
-    /// Returns the warning color (yellow, base0A).
-    #[must_use]
-    pub fn warning(&self) -> CrosstermColor {
-        to_crossterm(&self.palette.base0a)
-    }
-
-    /// Returns the info color (cyan, base0C).
-    #[must_use]
-    pub fn info(&self) -> CrosstermColor {
-        to_crossterm(&self.palette.base0c)
-    }
-
-    /// Returns the primary/prompt color (blue, base0D).
-    #[must_use]
-    pub fn primary(&self) -> CrosstermColor {
-        to_crossterm(&self.palette.base0d)
-    }
-
-    /// Returns the dim/comment color (base03).
-    #[must_use]
-    pub fn dim(&self) -> CrosstermColor {
-        to_crossterm(&self.palette.base03)
-    }
-
-    /// Returns the foreground color (base05).
-    #[must_use]
-    pub fn foreground(&self) -> CrosstermColor {
-        to_crossterm(&self.palette.base05)
-    }
-
-    // --- Inquire colors ---
-
-    fn inquire_success(&self) -> InquireColor {
-        to_inquire(&self.palette.base0b)
-    }
-
-    fn inquire_error(&self) -> InquireColor {
-        to_inquire(&self.palette.base08)
-    }
-
-    fn inquire_info(&self) -> InquireColor {
-        to_inquire(&self.palette.base0c)
-    }
-
-    fn inquire_primary(&self) -> InquireColor {
-        to_inquire(&self.palette.base0d)
-    }
-
-    fn inquire_dim(&self) -> InquireColor {
-        to_inquire(&self.palette.base03)
+impl Theme for CliTheme {
+    fn palette(&self) -> &Base16Palette {
+        &self.palette
     }
 }
 
-impl Default for Theme {
+impl Default for CliTheme {
     fn default() -> Self {
-        Self::new(flow_core::theme::builtin::flow())
+        Self::new(Base16Palette::default())
     }
 }
 
-/// Converts a hex color to an inquire color.
-fn to_inquire(hex: &HexColor) -> InquireColor {
-    match hex.to_rgb() {
-        Ok((r, g, b)) => InquireColor::Rgb { r, g, b },
-        Err(_) => InquireColor::White,
-    }
+pub trait HexColorExt {
+    /// Converts the hex color to an inquire color.
+    fn to_inquire(&self) -> InquireColor;
+
+    /// Converts the hex color to a crossterm color.
+    fn to_crossterm(&self) -> CrosstermColor;
+
+    /// Converts the hex color to a tabled color.
+    fn to_tabled(&self) -> TabledColor;
 }
 
-/// Converts a hex color to a crossterm color.
-fn to_crossterm(hex: &HexColor) -> CrosstermColor {
-    match hex.to_rgb() {
-        Ok((r, g, b)) => CrosstermColor::Rgb { r, g, b },
-        Err(_) => CrosstermColor::White,
+impl HexColorExt for HexColor {
+    fn to_inquire(&self) -> InquireColor {
+        match self.to_rgb() {
+            Ok((r, g, b)) => InquireColor::Rgb { r, g, b },
+            Err(_) => InquireColor::White,
+        }
+    }
+
+    fn to_crossterm(&self) -> CrosstermColor {
+        match self.to_rgb() {
+            Ok((r, g, b)) => CrosstermColor::Rgb { r, g, b },
+            Err(_) => CrosstermColor::White,
+        }
+    }
+
+    fn to_tabled(&self) -> TabledColor {
+        match self.to_rgb() {
+            Ok((r, g, b)) => TabledColor::rgb_fg(r, g, b),
+            Err(_) => TabledColor::empty(),
+        }
     }
 }

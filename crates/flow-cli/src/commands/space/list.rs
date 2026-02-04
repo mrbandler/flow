@@ -14,16 +14,24 @@
 //! flow space list --json
 //! ```
 
+use std::io::{stdout, Write};
 use std::path::PathBuf;
 
 use clap::Args;
 use flow_common::PathExt;
 use flow_errors::CliError;
+use flow_theme::Theme as _;
 use miette::Result;
 use serde::Serialize;
-use tabled::Tabled;
+use tabled::{
+    settings::{
+        object::{Cell, Rows},
+        Color as TabledColor, Modify, Style,
+    },
+    Table, Tabled,
+};
 
-use crate::{commands::Command, common::GlobalArgs, context::Context};
+use crate::{commands::Command, common::GlobalArgs, context::Context, theme::HexColorExt};
 
 /// Command-line arguments for the `list` command.
 #[derive(Args, Debug, Clone)]
@@ -124,7 +132,25 @@ impl<'a> Command<'a> for List<'a> {
     }
 
     fn finalize(&self, output: &Self::Output) {
-        self.printer()
-            .table(output.spaces.iter().map(SpaceRow::from));
+        let globals = self.globals();
+        if globals.quiet || globals.json {
+            return;
+        }
+
+        let theme = self.ctx().theme();
+        let rows: Vec<SpaceRow> = output.spaces.iter().map(SpaceRow::from).collect();
+
+        let mut table = Table::new(&rows);
+        table
+            .with(Style::modern_rounded())
+            .with(Modify::new(Rows::first()).with(theme.primary().to_tabled() | TabledColor::BOLD));
+
+        for (i, space) in output.spaces.iter().enumerate() {
+            if space.active {
+                table.with(Modify::new(Cell::new(i + 1, 0)).with(theme.highlight().to_tabled()));
+            }
+        }
+
+        let _ = writeln!(stdout(), "{table}");
     }
 }

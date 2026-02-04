@@ -5,9 +5,10 @@
 //! passed to each command.
 
 use flow_core::Config;
+use flow_theme::ThemeSource;
 use miette::Result;
 
-use crate::theme::Theme;
+use crate::theme::CliTheme;
 
 /// Application context containing shared resources for CLI commands.
 ///
@@ -26,7 +27,7 @@ use crate::theme::Theme;
 /// ```
 pub struct Context {
     config: Config,
-    theme: Theme,
+    theme: CliTheme,
 }
 
 impl Context {
@@ -43,8 +44,9 @@ impl Context {
     pub async fn load() -> Result<Self> {
         let config = Config::load().await?;
 
-        let palette = config.theme().await?;
-        let theme = Theme::new(palette);
+        let source: ThemeSource = config.settings().theme.as_deref().unwrap_or("flow").into();
+        let palette = source.resolve().await?;
+        let theme = CliTheme::new(palette);
         theme.register();
 
         Ok(Self { config, theme })
@@ -63,7 +65,7 @@ impl Context {
 
     /// Returns a reference to the theme.
     #[must_use]
-    pub const fn theme(&self) -> &Theme {
+    pub const fn theme(&self) -> &CliTheme {
         &self.theme
     }
 }

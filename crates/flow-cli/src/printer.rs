@@ -8,11 +8,15 @@
 
 use std::io::{stderr, stdout, Write};
 
-use crossterm::style::{Color, Stylize};
+use crossterm::style::Stylize;
+use flow_theme::Theme as _;
 use miette::{IntoDiagnostic, Result};
-use tabled::{settings::Style, Table, Tabled};
+use tabled::{
+    settings::{object::Rows, Color as TabledColor, Modify, Style},
+    Table, Tabled,
+};
 
-use crate::theme::{symbols, Theme};
+use crate::theme::{symbols, CliTheme, HexColorExt};
 
 /// Handles CLI output with support for multiple output modes.
 ///
@@ -24,7 +28,7 @@ use crate::theme::{symbols, Theme};
 ///
 /// Colors are determined by the provided theme's base16 palette.
 pub struct Printer<'a> {
-    theme: &'a Theme,
+    theme: &'a CliTheme,
     json: bool,
     verbose: bool,
     quiet: bool,
@@ -33,7 +37,7 @@ pub struct Printer<'a> {
 impl<'a> Printer<'a> {
     /// Creates a new printer with the specified theme and output modes.
     #[must_use]
-    pub const fn new(theme: &'a Theme, json: bool, verbose: bool, quiet: bool) -> Self {
+    pub const fn new(theme: &'a CliTheme, json: bool, verbose: bool, quiet: bool) -> Self {
         Self {
             theme,
             json,
@@ -52,11 +56,12 @@ impl<'a> Printer<'a> {
     /// Prints a success message with a green checkmark.
     pub fn success(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
+            let color = self.theme.success().to_crossterm();
             let _ = writeln!(
                 stdout(),
                 "{} {}",
-                symbols::SUCCESS,
-                message.as_ref().with(self.theme.success()).bold()
+                symbols::SUCCESS.with(color),
+                message.as_ref().with(color).bold()
             );
         }
     }
@@ -64,11 +69,12 @@ impl<'a> Printer<'a> {
     /// Prints an informational message with a cyan info icon.
     pub fn info(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
+            let color = self.theme.info().to_crossterm();
             let _ = writeln!(
                 stdout(),
                 "{} {}",
-                symbols::INFO,
-                message.as_ref().with(self.theme.info())
+                symbols::INFO.with(color),
+                message.as_ref().with(color)
             );
         }
     }
@@ -76,11 +82,12 @@ impl<'a> Printer<'a> {
     /// Prints a warning message with a yellow warning icon.
     pub fn warning(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
+            let color = self.theme.warning().to_crossterm();
             let _ = writeln!(
                 stdout(),
                 "{} {}",
-                symbols::WARN,
-                message.as_ref().with(self.theme.warning()).bold()
+                symbols::WARN.with(color),
+                message.as_ref().with(color).bold()
             );
         }
     }
@@ -88,11 +95,12 @@ impl<'a> Printer<'a> {
     /// Prints a step indicator with an arrow prefix.
     pub fn step(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
+            let color = self.theme.dim().to_crossterm();
             let _ = writeln!(
                 stdout(),
                 "{} {}",
-                symbols::STEP,
-                message.as_ref().with(self.theme.dim())
+                symbols::STEP.with(self.theme.info().to_crossterm()),
+                message.as_ref().with(color)
             );
         }
     }
@@ -100,11 +108,12 @@ impl<'a> Printer<'a> {
     /// Prints a verbose message (only shown with `--verbose` flag).
     pub fn verbose(&self, message: impl AsRef<str>) {
         if self.verbose && !self.quiet && !self.json {
+            let color = self.theme.dim().to_crossterm();
             let _ = writeln!(
                 stdout(),
                 "{} {}",
-                symbols::DEBUG,
-                message.as_ref().with(self.theme.dim())
+                symbols::DEBUG.with(color),
+                message.as_ref().with(color)
             );
         }
     }
@@ -112,12 +121,13 @@ impl<'a> Printer<'a> {
     /// Prints a debug key-value pair (only shown with `--verbose` flag).
     pub fn debug(&self, label: impl AsRef<str>, value: impl AsRef<str>) {
         if self.verbose && !self.quiet && !self.json {
+            let color = self.theme.dim().to_crossterm();
             let _ = writeln!(
                 stdout(),
                 "{} {}: {}",
-                symbols::DEBUG,
-                label.as_ref().with(self.theme.dim()),
-                value.as_ref().with(self.theme.dim()).italic()
+                symbols::DEBUG.with(color),
+                label.as_ref().with(color),
+                value.as_ref().with(color).italic()
             );
         }
     }
@@ -125,11 +135,12 @@ impl<'a> Printer<'a> {
     /// Prints an error message to stderr with a red error icon.
     pub fn error(&self, message: impl AsRef<str>) {
         if !self.quiet && !self.json {
+            let color = self.theme.error().to_crossterm();
             let _ = writeln!(
                 stderr(),
                 "{} {}",
-                symbols::ERROR,
-                message.as_ref().with(self.theme.error()).bold()
+                symbols::ERROR.with(color),
+                message.as_ref().with(color).bold()
             );
         }
     }
@@ -137,15 +148,12 @@ impl<'a> Printer<'a> {
     /// Prints a section heading with a section symbol.
     pub fn heading(&self, heading: impl AsRef<str>) {
         if !self.quiet && !self.json {
+            let color = self.theme.primary().to_crossterm();
             let _ = writeln!(
                 stdout(),
                 "{} {}",
-                symbols::HEADING,
-                heading
-                    .as_ref()
-                    .with(self.theme.primary())
-                    .bold()
-                    .underlined()
+                symbols::HEADING.with(color),
+                heading.as_ref().with(color).bold().underlined()
             );
         }
     }
@@ -156,20 +164,26 @@ impl<'a> Printer<'a> {
             let _ = writeln!(
                 stdout(),
                 "  {}: {}",
-                key.as_ref().with(self.theme.info()).bold(),
-                value.as_ref().with(Color::White)
+                key.as_ref().with(self.theme.info().to_crossterm()).bold(),
+                value.as_ref().with(self.theme.foreground().to_crossterm())
             );
         }
     }
 
     /// Prints a table from an iterator of `Tabled` items.
+    ///
+    /// Table headers are styled with the theme's primary color and bold text.
     pub fn table<T, I>(&self, items: I)
     where
         T: Tabled,
         I: IntoIterator<Item = T>,
     {
         if !self.quiet && !self.json {
-            let table = Table::new(items).with(Style::rounded()).to_string();
+            let header_color = self.theme.primary().to_tabled() | TabledColor::BOLD;
+            let table = Table::new(items)
+                .with(Style::rounded())
+                .with(Modify::new(Rows::first()).with(header_color))
+                .to_string();
             let _ = writeln!(stdout(), "{table}");
         }
     }

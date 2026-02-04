@@ -168,11 +168,8 @@ impl<'a> Command<'a> for Unregister<'a> {
     }
 
     fn finalize(&self, output: &Self::Output) {
-        let printer = self.printer();
+        let msg = if output.delete { " and deleted from disk" } else { "" };
 
-        printer.success("Space unregistered:");
-        printer.kv("Name", &output.name);
-        printer.kv("Path", output.path.normalize_to_string());
-        printer.kv("Deleted", output.delete.to_string());
+        self.printer().success(format!("Space unregistered{msg}"));
     }
 }
