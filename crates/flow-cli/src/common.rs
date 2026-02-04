@@ -4,11 +4,7 @@
 //! in command-specific argument types using clap's `#[command(flatten)]`.
 
 use clap::Args;
-use flow_core::{Config, Space};
-use miette::Result;
-use std::path::PathBuf;
-
-use flow_errors::CliError;
+use flow_core::Locator;
 
 /// Output formatting arguments available for all commands.
 ///
@@ -46,41 +42,5 @@ pub struct SpaceArgs {
 
     /// Target a specific space by name or path, overriding the active space.
     #[arg(long)]
-    pub space: Option<String>,
-}
-
-impl SpaceArgs {
-    /// Loads the target space based on these arguments.
-    ///
-    /// # Resolution Order
-    ///
-    /// 1. If `--space` is a valid filesystem path, load from that path
-    /// 2. If `--space` matches a registered space name, load that space
-    /// 3. Otherwise, load the currently active space from config
-    ///
-    /// # Errors
-    ///
-    /// Returns [`CliError::NoActiveSpace`] if no space can be determined,
-    /// or a space loading error if the space cannot be read.
-    #[allow(dead_code)]
-    pub async fn load_space(&self) -> Result<Space> {
-        if let Some(name_or_path) = &self.space {
-            let path = PathBuf::from(name_or_path);
-            if path.exists() {
-                return Space::load(path).await;
-            }
-        }
-
-        let config = Config::load().await?;
-
-        // Find by name if provided, otherwise use active space
-        let space = match &self.space {
-            Some(name) => config.find(&name.as_str().into()).await,
-            None => None,
-        }
-        .or_else(|| config.active())
-        .ok_or(CliError::NoActiveSpace)?;
-
-        Space::load(&space.name).await
-    }
+    pub space: Option<Locator>,
 }
