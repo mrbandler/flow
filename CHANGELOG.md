@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced `console` crate with `crossterm` for terminal handling (consistent with inquire)
 - Replaced emoji symbols with clean Unicode symbols in CLI output
 - Simplified space loading by parsing `Locator` directly from arguments (removed `load_space` from `SpaceArgs`)
+- `flow space init` no longer forces interactive mode when only the name argument is missing (name is derived from the directory path)
 
 ### Deprecated
 
@@ -65,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Paths stored in configuration are now properly canonicalized and normalized
 - Windows extended-length path prefix (`\\?\`) is stripped from displayed paths
 - Fixed `unregister` doc example to include `delete` parameter
+- `flow space init` now rejects already-registered space names before initializing
 
 ### Security
 
