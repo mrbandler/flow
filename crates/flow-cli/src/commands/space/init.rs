@@ -21,7 +21,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 use flow_common::PathExt;
-use flow_core::Space;
+use flow_core::{Space, SpaceError};
 use flow_errors::CliError;
 use inquire::{Confirm, Text};
 use miette::IntoDiagnostic;
@@ -166,6 +166,10 @@ impl<'a> Command<'a> for Init<'a> {
             .take()
             .or_else(|| path_name.map(String::from))
             .ok_or_else(|| CliError::MissingArgument("name".to_string()))?;
+
+        if !self.args.no_register && self.ctx.config().is_registered(&name.clone().into()).await {
+            return Err(SpaceError::AlreadyRegistered(name).into());
+        }
 
         let space = Space::init(&path, &name).await?;
         if !self.args.no_register {
