@@ -86,7 +86,7 @@ impl<'a> Command<'a> for Init<'a> {
     }
 
     fn needs_interaction(&self) -> bool {
-        self.globals().interactive || self.args.path.is_none() || self.args.name.is_none()
+        self.globals().interactive || self.args.path.is_none()
     }
 
     async fn interactive(&mut self) -> miette::Result<()> {
