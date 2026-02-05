@@ -90,10 +90,22 @@ impl<'a> Command<'a> for Init<'a> {
     }
 
     async fn interactive(&mut self) -> miette::Result<()> {
-        let printer = self.printer();
-        printer.info("Entering interactive mode");
-
         let forced = self.globals().interactive;
+
+        // When 'forced', we ask whether the user wants to override default values of non-required arguments.
+        let prompt_overrides = forced
+            && Confirm::new("Do you want to override default flags?")
+                .with_default(false)
+                .prompt()
+                .into_diagnostic()?;
+
+        if prompt_overrides {
+            self.args.no_register = !Confirm::new("Register this space?")
+                .with_default(!self.args.no_register)
+                .with_help_message("Registered spaces appear in 'flow space list' and can be switched to by name")
+                .prompt()
+                .into_diagnostic()?;
+        }
 
         if forced || self.args.path.is_none() {
             let default = self
@@ -122,9 +134,11 @@ impl<'a> Command<'a> for Init<'a> {
                     .map(String::from)
             });
 
-            let mut prompt = Text::new("Name:")
-                .with_help_message("Name of the space")
-                .with_validator(NameAlreadyRegisteredValidator::new(self.ctx.config()));
+            let mut prompt = Text::new("Name:").with_help_message("Name of the space");
+            if !self.args.no_register {
+                prompt = prompt.with_validator(NameAlreadyRegisteredValidator::new(self.ctx.config()));
+            }
+
             if let Some(d) = &default {
                 prompt = prompt.with_default(d);
             }
@@ -133,21 +147,6 @@ impl<'a> Command<'a> for Init<'a> {
             if !name_input.trim().is_empty() {
                 self.args.name = Some(name_input);
             }
-        }
-
-        // When 'forced', we ask whether the user wants to override default values of non-required arguments.
-        let prompt_overrides = forced
-            && Confirm::new("Do you want to override default flags?")
-                .with_default(false)
-                .prompt()
-                .into_diagnostic()?;
-
-        if prompt_overrides {
-            self.args.no_register = !Confirm::new("Register this space?")
-                .with_default(!self.args.no_register)
-                .with_help_message("Registered spaces appear in 'flow space list' and can be switched to by name")
-                .prompt()
-                .into_diagnostic()?;
         }
 
         Ok(())

@@ -100,10 +100,22 @@ impl<'a> Command<'a> for Unregister<'a> {
     }
 
     async fn interactive(&mut self) -> Result<()> {
-        let printer = self.printer();
-        printer.info("Entering interactive mode");
-
         let forced = self.globals().interactive;
+
+        // When 'forced', we ask whether the user wants to override default values of non-required arguments.
+        let prompt_overrides = forced
+            && Confirm::new("Do you want to override default flags?")
+                .with_default(false)
+                .prompt()
+                .into_diagnostic()?;
+
+        if prompt_overrides {
+            self.args.delete = Confirm::new("Delete selected space?")
+                .with_default(self.args.delete)
+                .with_help_message("Will delete the space's files from disk")
+                .prompt()
+                .into_diagnostic()?;
+        }
 
         if forced || self.args.locator.is_none() {
             let cwd_locator;
@@ -122,21 +134,6 @@ impl<'a> Command<'a> for Unregister<'a> {
                 .into_diagnostic()?;
 
             self.args.locator = Some(selected.name.into());
-        }
-
-        // When 'forced', we ask whether the user wants to override default values of non-required arguments.
-        let prompt_overrides = forced
-            && Confirm::new("Do you want to override default flags?")
-                .with_default(false)
-                .prompt()
-                .into_diagnostic()?;
-
-        if prompt_overrides {
-            self.args.delete = Confirm::new("Delete selected space?")
-                .with_default(self.args.delete)
-                .with_help_message("Will delete the space's files from disk")
-                .prompt()
-                .into_diagnostic()?;
         }
 
         Ok(())
