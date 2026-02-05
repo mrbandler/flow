@@ -13,12 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Config` struct with methods to register, unregister, and find spaces
   - Support for setting and clearing the active space
   - Persistent storage in `~/.config/flow/` (config.json and spaces.json)
+  - Theme configuration field with support for builtin base16 palettes, base16 YAML files, and remote URLs
+- `flow-theme` crate for shared theming logic and base16 data types across frontends
+- Unified inquire theme with consistent prompt styling and shared symbols
+  - Centralized symbols in `theme::symbols` (prompt `?` in cyan, success `✓` in green, error `✗` in red, selection arrow `→` in cyan)
 - Space management CLI commands
-  - `flow space init` - Initialize a new space at a path
+  - `flow space init` - Initialize a new space at a path (with path validation)
   - `flow space list` - List all registered spaces with active marker
   - `flow space switch` - Change the active space
-  - `flow space register` - Register an existing space
+  - `flow space register` - Register an existing space (with path validation)
   - `flow space unregister` - Remove a space from the registry (with optional `--delete`)
+- CLI context object that passes loaded configuration and theme at startup
 - `Locator` type for identifying spaces by name or filesystem path
 - `Printer` module for consistent CLI output with support for JSON, verbose, and quiet modes
 - Path normalization utilities in `flow-common` for cross-platform compatibility
@@ -43,7 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Nothing yet
+- Replaced `console` crate with `crossterm` for terminal handling (consistent with inquire)
+- Replaced emoji symbols with clean Unicode symbols in CLI output
+- Simplified space loading by parsing `Locator` directly from arguments (removed `load_space` from `SpaceArgs`)
 
 ### Deprecated
 
@@ -57,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Paths stored in configuration are now properly canonicalized and normalized
 - Windows extended-length path prefix (`\\?\`) is stripped from displayed paths
+- Fixed `unregister` doc example to include `delete` parameter
 
 ### Security
 
