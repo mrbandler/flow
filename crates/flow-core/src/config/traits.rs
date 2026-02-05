@@ -40,6 +40,7 @@ use crate::space::Space;
 /// // Set it as active
 /// config.set_active(&"personal".into()).await?;
 /// ```
+#[allow(dead_code)]
 pub trait Config: Sized + Send + Sync {
     /// The filesystem implementation used for persistence.
     type Fs: Filesystem;
@@ -89,6 +90,20 @@ pub trait Config: Sized + Send + Sync {
     /// - The configuration cannot be saved
     async fn unregister(&mut self, locator: &Locator, delete: bool) -> Result<()>;
 
+    /// Checks if a space is registered in the configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `locator` - Identifies the space to check, either by name or path.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the space is registered, `false` otherwise.
+    #[must_use]
+    async fn is_registered(&self, locator: &Locator) -> bool {
+        self.find(locator).await.is_some()
+    }
+
     /// Checks if the given space is the active space.
     ///
     /// # Arguments
@@ -99,7 +114,6 @@ pub trait Config: Sized + Send + Sync {
     ///
     /// `true` if the space is the currently active space, `false` otherwise.
     #[must_use]
-    #[allow(dead_code)]
     async fn is_active(&self, locator: &Locator) -> bool;
 
     /// Sets the active space.

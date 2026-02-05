@@ -213,6 +213,19 @@ impl Config {
         self.inner.unregister(locator, delete).await
     }
 
+    /// Checks if a space is registered in the configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `locator` - Identifies the space to check, either by name or path.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the space is registered, `false` otherwise.
+    pub async fn is_registered(&self, locator: &Locator) -> bool {
+        self.inner.is_registered(locator).await
+    }
+
     /// Sets the active space.
     ///
     /// The active space is the default space used when no space is
