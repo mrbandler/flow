@@ -168,7 +168,7 @@ pub trait Command<'a>: Sized {
 
         self.printer().verbose("Checking for interactive mode...");
         if self.needs_interaction() && !self.globals().json {
-            self.printer().verbose("Entering interactive mode");
+            self.printer().info("Entering interactive mode");
             self.interactive().await?;
         }
 

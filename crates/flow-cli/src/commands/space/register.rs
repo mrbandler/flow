@@ -77,9 +77,6 @@ impl<'a> Command<'a> for Register<'a> {
     }
 
     async fn interactive(&mut self) -> Result<()> {
-        let printer = self.printer();
-        printer.info("Entering interactive mode");
-
         let forced = self.globals().interactive;
 
         if forced || self.args.path.is_none() {

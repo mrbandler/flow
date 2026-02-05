@@ -95,9 +95,6 @@ impl<'a> Command<'a> for Switch<'a> {
     }
 
     async fn interactive(&mut self) -> Result<()> {
-        let printer = self.printer();
-        printer.info("Entering interactive mode");
-
         let forced = self.globals().interactive;
 
         if forced || self.args.locator.is_none() {
