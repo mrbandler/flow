@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI context object that passes loaded configuration and theme at startup
 - `Locator` type for identifying spaces by name or filesystem path
 - `Printer` module for consistent CLI output with support for JSON, verbose, and quiet modes
+- **cli:** Terminal spinner for long-running operations with automatic suspend/resume around other output
 - Path normalization utilities in `flow-common` for cross-platform compatibility
 - `Command` trait for consistent CLI command lifecycle (init, validate, interactive, execute, finalize)
 - Global CLI arguments: `--interactive`, `--json`, `--verbose`, `--quiet`, `--trace`
