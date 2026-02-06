@@ -23,6 +23,7 @@ This project adheres to a [Code of Conduct](./CODE_OF_CONDUCT.md). By participat
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (stable toolchain)
+- [just](https://github.com/casey/just) (command runner)
 - Git
 - A code editor (we recommend VS Code with rust-analyzer)
 
@@ -44,105 +45,54 @@ This project adheres to a [Code of Conduct](./CODE_OF_CONDUCT.md). By participat
 
 ## Development Setup
 
-### Install Rust Toolchain
-
-The project includes a `rust-toolchain.toml` file that specifies the required Rust version. Simply run:
+The project uses a `justfile` to automate all common development tasks. After cloning, run:
 
 ```bash
-rustup show
+just setup
 ```
 
-This will automatically install the correct toolchain with required components.
+This will:
 
-### Install Development Tools
-
-```bash
-# Code formatting
-rustup component add rustfmt
-
-# Linting
-rustup component add clippy
-
-# Dependency auditing
-cargo install cargo-deny
-
-# Changelog generation (optional)
-cargo install git-cliff
-
-# Documentation site (optional)
-cargo install mdbook
-
-# Watch mode for development (optional)
-cargo install cargo-watch
-```
-
-### Install Pre-commit Hooks
-
-We use [pre-commit](https://pre-commit.com/) to automatically run checks before commits. This ensures code quality and consistency across all contributions.
-
-```bash
-# Install pre-commit (choose one method)
-pip install pre-commit          # via pip
-pipx install pre-commit         # via pipx (recommended)
-brew install pre-commit         # via Homebrew (macOS)
-scoop install pre-commit        # via Scoop (Windows)
-```
-
-Then install the git hooks:
-
-```bash
-# Install pre-commit hooks
-pre-commit install
-
-# Install commit message validation (for conventional commits)
-pre-commit install --hook-type commit-msg
-
-# Install pre-push hooks (runs tests and cargo-deny)
-pre-commit install --hook-type pre-push
-```
-
-The hooks will now run automatically on every commit. To run all hooks manually:
-
-```bash
-pre-commit run --all-files
-```
+- Install the Rust toolchain from `rust-toolchain.toml` (stable + clippy, rustfmt, rust-analyzer)
+- Install `cargo-deny` (dependency auditing)
+- Install `mdbook` (documentation site)
+- Install [prek](https://github.com/j178/prek) (pre-commit hook runner)
+- Fetch all crate dependencies
+- Register the git pre-commit hooks
 
 ### Verify Setup
 
 ```bash
-# Check that everything compiles
-cargo build --workspace --all-features
-
-# Run tests
-cargo test --workspace
-
-# Check formatting
-cargo fmt --all -- --check
-
-# Run lints
-cargo clippy --workspace --all-targets --all-features -- -D warnings
+just check
 ```
+
+This runs formatting, clippy, tests, dependency audit, and doc build in sequence.
 
 ## Project Structure
 
 ```
 flow/
 ├── crates/
-│   ├── flow/              # Main binary crate
-│   │   └── src/
-│   │       └── main.rs    # Entry point with feature flags
-│   ├── flow-core/         # Core library (data structures, storage)
+│   ├── flow/              # Main binary crate (entry point with feature flags)
+│   ├── flow-core/         # Core library (space management, filesystem, config)
 │   ├── flow-app/          # Application logic (shared between UIs)
 │   ├── flow-cli/          # CLI commands and interface
-│   ├── flow-tui/          # Terminal UI (ratatui, crossterm)
+│   ├── flow-common/       # Shared utilities (e.g., path normalization)
+│   ├── flow-errors/       # Centralized error types (miette diagnostics)
+│   ├── flow-theme/        # Shared theming
+│   ├── flow-tui/          # Terminal UI (ratatui)
 │   ├── flow-gui/          # Desktop GUI (iced)
-│   ├── flow-server/       # Server (future)
+│   └── flow-server/       # Sync server
+├── docs/                  # mdBook documentation site
 ├── tests/                 # Integration tests
 ├── Cargo.toml             # Workspace configuration
+├── justfile               # Development task runner
 ├── rustfmt.toml           # Formatting rules
 ├── clippy.toml            # Lint configuration
+├── cliff.toml             # Changelog generation (git-cliff)
 ├── deny.toml              # Dependency audit rules
-└── rust-toolchain.toml    # Rust version pinning
+├── rust-toolchain.toml    # Rust version pinning
+└── .pre-commit-config.yaml # Pre-commit hook configuration
 ```
 
 ### Binary Variants
@@ -160,20 +110,19 @@ Flow builds a single fat binary with varying features using feature flags:
 Build specific variants:
 
 ```bash
-# CLI only (default)
-cargo build --package flow
+just build          # CLI only (default)
+just build tui      # CLI + TUI
+just build gui      # CLI + GUI
+just build server   # CLI + Server
+just build all      # Everything
+```
 
-# CLI + TUI
-cargo build --package flow --features tui
+Build and run:
 
-# CLI + Desktop
-cargo build --package flow --features gui
-
-# CLI + Server
-cargo build --package flow --features server
-
-# Full binary
-cargo build --package flow --features all
+```bash
+just run cli <args>  # CLI
+just run tui <args>  # CLI + TUI
+just run gui <args>  # CLI + GUI
 ```
 
 ## Making Changes
@@ -182,7 +131,7 @@ cargo build --package flow --features all
 
 Use descriptive branch names:
 
-- `feature/description` - New features
+- `feat/description` - New features
 - `fix/description` - Bug fixes
 - `docs/description` - Documentation changes
 - `refactor/description` - Code refactoring
@@ -227,7 +176,7 @@ test(cli): add tests for add command
 All code must be formatted with `rustfmt`:
 
 ```bash
-cargo fmt --all
+just fmt
 ```
 
 Configuration is in `rustfmt.toml`.
@@ -237,10 +186,16 @@ Configuration is in `rustfmt.toml`.
 All code must pass `clippy` without warnings:
 
 ```bash
-cargo clippy --workspace --all-targets --all-features -- -D warnings
+just clippy
 ```
 
 Configuration is in `clippy.toml` and `Cargo.toml` workspace lints.
+
+To run all pre-commit hooks (formatting, clippy, file checks, etc.) manually:
+
+```bash
+just lint
+```
 
 ### Documentation
 
@@ -248,7 +203,7 @@ Configuration is in `clippy.toml` and `Cargo.toml` workspace lints.
 - Use `///` for item documentation
 - Use `//!` for module-level documentation
 - Include examples in doc comments where appropriate
-- Run `cargo doc --workspace --all-features` to verify docs build
+- Run `just doc` to verify docs build
 
 ### Error Handling
 
@@ -271,16 +226,16 @@ Configuration is in `clippy.toml` and `Cargo.toml` workspace lints.
 
 ```bash
 # All tests
-cargo test --workspace
+just test
 
-# Specific crate
+# With extra arguments
+just test -- --nocapture
+
+# Specific crate (use cargo directly)
 cargo test --package flow-core
 
 # Specific test
 cargo test --package flow-cli test_name
-
-# With output
-cargo test --workspace -- --nocapture
 ```
 
 ### Writing Tests
@@ -320,10 +275,7 @@ mod tests {
 1. Ensure all checks pass:
 
    ```bash
-   cargo fmt --all -- --check
-   cargo clippy --workspace --all-targets --all-features -- -D warnings
-   cargo test --workspace --all-features
-   cargo deny check
+   just check
    ```
 
 2. Update documentation if needed
@@ -336,7 +288,7 @@ mod tests {
 
    ```bash
    git fetch upstream
-   git rebase upstream/master
+   git rebase upstream/main
    ```
 
 2. Push your branch and create a pull request
