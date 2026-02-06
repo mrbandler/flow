@@ -38,9 +38,16 @@ deny:
 doc:
     cargo doc --workspace --all-features --no-deps
 
-# Build the mdBook documentation site
-book:
-    mdbook build docs
+# mdBook documentation: build, dev (default: build)
+book variant="build":
+    @if [ "{{ variant }}" = "build" ]; then \
+        mdbook build docs; \
+    elif [ "{{ variant }}" = "dev" ]; then \
+        mdbook serve docs --open; \
+    else \
+        echo "Unknown variant '{{ variant }}'. Use: build, dev"; \
+        exit 1; \
+    fi
 
 # Run all checks (use before submitting a PR)
 check: fmt clippy test deny doc
