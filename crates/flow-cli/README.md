@@ -209,6 +209,8 @@ flow page list | fzf | flow node tree
 
 | Flag | Description |
 |------|-------------|
+| `--interactive` | Force interactive mode |
+| `--verbose` | Print verbose output |
 | `--json` | Output as JSON (for scripting) |
 | `--help` | Show help for command |
 | `--version` | Show version |
