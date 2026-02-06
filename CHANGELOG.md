@@ -28,7 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Printer` module for consistent CLI output with support for JSON, verbose, and quiet modes
 - Path normalization utilities in `flow-common` for cross-platform compatibility
 - `Command` trait for consistent CLI command lifecycle (init, validate, interactive, execute, finalize)
-- Global CLI arguments: `--interactive`, `--json`, `--verbose`, `--quiet`
+- Global CLI arguments: `--interactive`, `--json`, `--verbose`, `--quiet`, `--trace`
+- Stdin piping support for pre-filling missing command arguments from piped input
+- Structured logging via `tracing` with CLI printer integration (library logs routed through `--verbose`/`--trace`)
 - Custom path serializer to output paths with forward slashes on all platforms
 - Space module with trait-based abstraction pattern for easy testing and extensibility
 - Filesystem module with local filesystem implementation
