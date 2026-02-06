@@ -1,0 +1,4 @@
+{
+  "name": "flow-dev",
+  "description": "Development workflow commands for git commits, PRs, and CHANGELOG management"
+}
