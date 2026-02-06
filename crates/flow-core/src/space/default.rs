@@ -44,6 +44,7 @@ use std::{
 
 use loro::LoroDoc;
 use miette::{ensure, IntoDiagnostic, Result};
+use tracing::{debug, info};
 
 use crate::{
     filesystem::Filesystem,
@@ -164,16 +165,22 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
     /// - The Loro document is exported as a binary snapshot for efficiency.
     /// - All filesystem operations use the injected `fs` implementation.
     async fn init(fs: Self::Fs, path: impl AsRef<Path> + Send + Sync, name: impl Into<String>) -> Result<Self> {
+        let name = name.into();
         let path = path.as_ref();
+        info!("Initializing space '{name}' at {}", path.display());
+
         let exists = fs.exists(path).await?;
         if exists {
             let is_dir = fs.is_dir(path).await?;
             ensure!(is_dir, SpaceError::NotADirectory(path.to_path_buf()));
         } else {
+            debug!("Path does not exist, creating directory");
             fs.create_dir_all(path).await?;
         }
 
         let path = fs.canonicalize(path).await?;
+        debug!("Canonicalized path: {}", path.display());
+
         let flow_dir = path.join(FLOW_DIR);
         let is_empty = fs.is_dir_empty(&path).await?;
         if !is_empty {
@@ -188,19 +195,24 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
         let journal_dir = path.join(JOURNAL_DIR);
         fs.create_dir(&flow_dir).await?;
         fs.create_dir(&journal_dir).await?;
+        debug!("Created .flow/ and journal/ directories");
 
         let metadata = Metadata {
-            name: name.into(),
+            name,
             version: Cow::Borrowed(env!("CARGO_PKG_VERSION")),
         };
         let metadata_json = serde_json::to_string_pretty(&metadata).into_diagnostic()?;
         let metadata_path = flow_dir.join(METADATA_FILE);
         fs.write(&metadata_path, metadata_json.as_bytes()).await?;
+        debug!("Wrote space metadata to {}", metadata_path.display());
 
         let doc = LoroDoc::new();
         let doc_snapshot = doc.export(loro::ExportMode::Snapshot).into_diagnostic()?;
         let doc_path = flow_dir.join(DOCUMENT_FILE);
         fs.write(&doc_path, &doc_snapshot).await?;
+        debug!("Wrote Loro document snapshot to {}", doc_path.display());
+
+        info!("Space '{}' initialized at {}", metadata.name, path.display());
 
         Ok(Self {
             fs,
@@ -220,6 +232,7 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
     /// 2. Read and deserialize the space metadata from `.flow/config.json`
     /// 3. Load the Loro CRDT document from `.flow/history.loro`
     async fn load(fs: Self::Fs, locator: Locator) -> Result<Self> {
+        info!("Loading space from {locator}");
         let path = match locator {
             Locator::Name(_name) => todo!("Look up the path through the name of the space"),
             Locator::Path(path) => path,
@@ -229,10 +242,14 @@ impl<F: Filesystem> Space for DefaultSpace<F> {
         let metadata_path = flow_dir.join(METADATA_FILE);
         let metadata_json = fs.read_to_string(&metadata_path).await?;
         let metadata = serde_json::from_str::<Metadata>(&metadata_json).into_diagnostic()?; // TODO: Create custom error for this?
+        debug!("Loaded metadata: name='{}'", metadata.name);
 
         let doc_path = flow_dir.join(DOCUMENT_FILE);
         let doc_snapshot = fs.read(&doc_path).await?;
         let doc = LoroDoc::from_snapshot(&doc_snapshot).into_diagnostic()?; // TODO: Create custom error for this?
+        debug!("Loaded Loro document from {}", doc_path.display());
+
+        info!("Space '{}' loaded from {}", metadata.name, path.display());
 
         Ok(Self {
             fs,

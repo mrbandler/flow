@@ -25,6 +25,7 @@ use std::path::PathBuf;
 
 use cross_xdg::BaseDirs;
 use miette::{IntoDiagnostic, Result};
+use tracing::{debug, info};
 
 use crate::filesystem::Filesystem;
 use crate::space::Locator;
@@ -96,6 +97,7 @@ impl<F: Filesystem> DefaultConfig<F> {
 
     /// Finds a space by locator and returns its index.
     async fn find_index(&self, locator: &Locator) -> Option<usize> {
+        debug!("Looking up space by {locator}");
         match locator {
             Locator::Name(name) => self.spaces.spaces.iter().position(|s| &s.name == name),
             Locator::Path(path) => {
@@ -118,17 +120,23 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
     where
         Self: Sized,
     {
+        info!("Loading configuration...");
+
         let config_dir = Self::config_dir()?;
 
         if !fs.exists(&config_dir).await? {
             fs.create_dir_all(&config_dir).await?;
+            info!("Created config directory at {}", config_dir.display());
         }
 
         let settings_path = config_dir.join(SETTINGS_FILE);
         let settings = if fs.exists(&settings_path).await? {
+            info!("Loading settings...");
+
             let json = fs.read_to_string(&settings_path).await?;
             serde_json::from_str(&json).into_diagnostic()?
         } else {
+            info!("No settings file found, writing defaults");
             let settings = Settings {
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 theme: None,
@@ -140,14 +148,19 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
 
         let spaces_path = config_dir.join(SPACES_FILE);
         let spaces = if fs.exists(&spaces_path).await? {
+            info!("Loading registered spaces...");
+
             let json = fs.read_to_string(&spaces_path).await?;
             serde_json::from_str(&json).into_diagnostic()?
         } else {
+            info!("No spaces file found, writing defaults");
             let spaces = Spaces::default();
             let json = serde_json::to_string_pretty(&spaces).into_diagnostic()?;
             fs.write(&spaces_path, json.as_bytes()).await?;
             spaces
         };
+
+        info!("Configuration loaded ({} spaces registered)", spaces.spaces.len());
 
         Ok(Self {
             fs,
@@ -160,6 +173,7 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
     async fn register(&mut self, space: &Space) -> Result<()> {
         let name = space.name();
         let path = space.path();
+        info!("Registering space '{name}' at {}", path.display());
 
         // Check if already registered by name
         if self.spaces.spaces.iter().any(|s| s.name == name) {
@@ -176,10 +190,13 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
             path: path.to_path_buf(),
         });
 
-        self.save_spaces().await
+        self.save_spaces().await?;
+        info!("Space '{name}' registered successfully");
+        Ok(())
     }
 
     async fn unregister(&mut self, locator: &Locator, delete: bool) -> Result<()> {
+        info!("Unregistering space '{locator}'");
         let index = self
             .find_index(locator)
             .await
@@ -189,11 +206,13 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
 
         // Clear active if it was the removed space
         if self.spaces.active.as_ref() == Some(&removed.name) {
+            info!("Cleared active space (was the unregistered space)");
             self.spaces.active = None;
         }
 
         self.save_spaces().await?;
         if delete {
+            info!("Deleting space directory at {}", removed.path.display());
             self.fs.remove_dir_all(&removed.path).await?;
         }
 
@@ -224,11 +243,13 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
             .await
             .ok_or_else(|| SpaceError::NotRegistered(locator.to_string()))?;
 
+        info!("Setting active space to '{}'", space.name);
         self.spaces.active = Some(space.name.clone());
         self.save_spaces().await
     }
 
     async fn clear_active(&mut self) -> Result<()> {
+        info!("Clearing active space");
         self.spaces.active = None;
         self.save_spaces().await
     }
@@ -241,6 +262,7 @@ impl<F: Filesystem> Config for DefaultConfig<F> {
     }
 
     async fn find(&self, locator: &Locator) -> Option<&RegisteredSpace> {
+        debug!("Finding space by {locator}");
         match locator {
             Locator::Name(name) => self.spaces.spaces.iter().find(|s| &s.name == name),
             Locator::Path(path) => {

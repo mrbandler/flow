@@ -29,12 +29,14 @@
 use clap::Subcommand;
 use miette::Result;
 
-use crate::{commands::space, context::Context};
+use crate::commands::space;
 
 mod commands;
 mod common;
 mod context;
+mod logging;
 mod printer;
+mod stdin;
 mod theme;
 mod validators;
 
@@ -55,10 +57,8 @@ pub enum Commands {
 ///
 /// Returns an error if the command execution fails.
 pub async fn run(cmd: Commands) -> Result<()> {
-    let mut ctx = Context::load().await?;
-
     match cmd {
-        Commands::Space(space) => space.run(&mut ctx).await?,
+        Commands::Space(space) => space.run().await?,
     }
 
     Ok(())

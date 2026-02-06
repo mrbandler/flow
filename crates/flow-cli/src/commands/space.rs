@@ -61,7 +61,7 @@ impl SpaceOption {
 impl fmt::Display for SpaceOption {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_active {
-            write!(f, "{} ({}) ← active", self.name, self.path.normalize_to_string())
+            write!(f, "{} ({}) <- active", self.name, self.path.normalize_to_string())
         } else {
             write!(f, "{} ({})", self.name, self.path.normalize_to_string())
         }
@@ -96,15 +96,15 @@ impl Space {
     /// # Errors
     ///
     /// Returns an error if the command execution fails.
-    pub async fn run(self, ctx: &mut Context) -> Result<()> {
+    pub async fn run(self) -> Result<()> {
         use crate::commands::Command;
 
         match self {
-            Self::Init(args) => init::Init::new(args, ctx).run().await,
-            Self::List(args) => list::List::new(args, ctx).run().await,
-            Self::Switch(args) => switch::Switch::new(args, ctx).run().await,
-            Self::Register(args) => register::Register::new(args, ctx).run().await,
-            Self::Unregister(args) => unregister::Unregister::new(args, ctx).run().await,
+            Self::Init(args) => init::Init::new(args).run().await,
+            Self::List(args) => list::List::new(args).run().await,
+            Self::Switch(args) => switch::Switch::new(args).run().await,
+            Self::Register(args) => register::Register::new(args).run().await,
+            Self::Unregister(args) => unregister::Unregister::new(args).run().await,
         }
     }
 }

@@ -86,37 +86,32 @@ impl From<&OutputSpace> for SpaceRow {
 }
 
 /// Lists all registered Flow spaces.
-pub struct List<'a> {
+pub struct List {
     args: Arguments,
-    ctx: &'a mut Context,
 }
 
-impl<'a> Command<'a> for List<'a> {
+impl Command for List {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
-        Self { args, ctx }
+    fn new(args: Self::Args) -> Self {
+        Self { args }
     }
 
-    fn ctx(&self) -> &Context {
-        self.ctx
-    }
-
-    fn globals(&self) -> &crate::common::GlobalArgs {
+    fn globals(&self) -> &GlobalArgs {
         &self.args.globals
     }
 
-    async fn validate(&mut self) -> Result<()> {
-        if self.ctx.config().spaces().is_empty() {
+    async fn validate(&mut self, ctx: &mut Context) -> Result<()> {
+        if ctx.config().spaces().is_empty() {
             return Err(CliError::NoSpacesRegistered.into());
         }
 
         Ok(())
     }
 
-    async fn execute(&mut self) -> Result<Self::Output> {
-        let config = self.ctx.config();
+    async fn execute(&mut self, ctx: &mut Context) -> Result<Self::Output> {
+        let config = ctx.config();
         let active_name = config.active().map(|s| &s.name);
         let spaces = config
             .spaces()
@@ -131,13 +126,13 @@ impl<'a> Command<'a> for List<'a> {
         Ok(Output { spaces })
     }
 
-    fn finalize(&self, output: &Self::Output) {
+    fn finalize(&self, ctx: &Context, output: &Self::Output) {
         let globals = self.globals();
         if globals.quiet || globals.json {
             return;
         }
 
-        let theme = self.ctx().theme();
+        let theme = ctx.theme();
         let rows: Vec<SpaceRow> = output.spaces.iter().map(SpaceRow::from).collect();
 
         let mut table = Table::new(&rows);

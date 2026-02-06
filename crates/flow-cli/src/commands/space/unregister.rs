@@ -74,32 +74,35 @@ pub struct Output {
 ///
 /// This command removes a space from Flow's registry. Optionally,
 /// the space's files can be deleted from disk with the `--delete` flag.
-pub struct Unregister<'a> {
+pub struct Unregister {
     args: Arguments,
-    ctx: &'a mut Context,
 }
 
-impl<'a> Command<'a> for Unregister<'a> {
+impl Command for Unregister {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
-        Self { args, ctx }
-    }
-
-    fn ctx(&self) -> &Context {
-        self.ctx
+    fn new(args: Self::Args) -> Self {
+        Self { args }
     }
 
     fn globals(&self) -> &GlobalArgs {
         &self.args.globals
     }
 
+    fn pipe(&mut self, stdin: &mut dyn Iterator<Item = String>) {
+        if self.args.locator.is_none() {
+            if let Some(line) = stdin.next() {
+                self.args.locator = Some(line.into());
+            }
+        }
+    }
+
     fn needs_interaction(&self) -> bool {
         self.globals().interactive || self.args.locator.is_none()
     }
 
-    async fn interactive(&mut self) -> Result<()> {
+    async fn interactive(&mut self, ctx: &mut Context) -> Result<()> {
         let forced = self.globals().interactive;
 
         // When 'forced', we ask whether the user wants to override default values of non-required arguments.
@@ -127,7 +130,7 @@ impl<'a> Command<'a> for Unregister<'a> {
                 &cwd_locator
             };
 
-            let (options, default_index) = SpaceOption::from_context(self.ctx, Some(default_locator));
+            let (options, default_index) = SpaceOption::from_context(ctx, Some(default_locator));
             let selected = Select::new("Select the space to unregister:", options)
                 .with_starting_cursor(default_index)
                 .prompt()
@@ -139,14 +142,14 @@ impl<'a> Command<'a> for Unregister<'a> {
         Ok(())
     }
 
-    async fn execute(&mut self) -> Result<Self::Output> {
+    async fn execute(&mut self, ctx: &mut Context) -> Result<Self::Output> {
         let locator = self
             .args
             .locator
             .take()
             .ok_or_else(|| CliError::MissingArgument("locator".to_string()))?;
 
-        let config = self.ctx.config_mut();
+        let config = ctx.config_mut();
         let space = config
             .find(&locator)
             .await
@@ -164,9 +167,9 @@ impl<'a> Command<'a> for Unregister<'a> {
         })
     }
 
-    fn finalize(&self, output: &Self::Output) {
+    fn finalize(&self, ctx: &Context, output: &Self::Output) {
         let msg = if output.delete { " and deleted from disk" } else { "" };
 
-        self.printer().success(format!("Space unregistered{msg}"));
+        ctx.printer().success(format!("Space unregistered{msg}"));
     }
 }

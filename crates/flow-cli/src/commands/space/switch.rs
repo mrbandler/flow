@@ -61,40 +61,43 @@ pub struct Output {
 ///
 /// This command changes which space is used by default when no space
 /// is explicitly specified in other commands.
-pub struct Switch<'a> {
+pub struct Switch {
     args: Arguments,
-    ctx: &'a mut Context,
 }
 
-impl<'a> Command<'a> for Switch<'a> {
+impl Command for Switch {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
-        Self { args, ctx }
+    fn new(args: Self::Args) -> Self {
+        Self { args }
     }
 
-    fn ctx(&self) -> &Context {
-        self.ctx
-    }
-
-    fn globals(&self) -> &crate::common::GlobalArgs {
+    fn globals(&self) -> &GlobalArgs {
         &self.args.globals
     }
 
-    async fn validate(&mut self) -> Result<()> {
-        if self.ctx.config().spaces().is_empty() {
+    async fn validate(&mut self, ctx: &mut Context) -> Result<()> {
+        if ctx.config().spaces().is_empty() {
             return Err(CliError::NoSpacesRegistered.into());
         }
 
         Ok(())
     }
 
+    fn pipe(&mut self, stdin: &mut dyn Iterator<Item = String>) {
+        if self.args.locator.is_none() {
+            if let Some(line) = stdin.next() {
+                self.args.locator = Some(line.into());
+            }
+        }
+    }
+
     fn needs_interaction(&self) -> bool {
         self.globals().interactive || self.args.locator.is_none()
     }
 
-    async fn interactive(&mut self) -> Result<()> {
+    async fn interactive(&mut self, ctx: &mut Context) -> Result<()> {
         let forced = self.globals().interactive;
 
         if forced || self.args.locator.is_none() {
@@ -107,7 +110,7 @@ impl<'a> Command<'a> for Switch<'a> {
                 &cwd_locator
             };
 
-            let (options, default_index) = SpaceOption::from_context(self.ctx, Some(default_locator));
+            let (options, default_index) = SpaceOption::from_context(ctx, Some(default_locator));
             let selected = Select::new("Select the space to switch to:", options)
                 .with_starting_cursor(default_index)
                 .prompt()
@@ -119,14 +122,14 @@ impl<'a> Command<'a> for Switch<'a> {
         Ok(())
     }
 
-    async fn execute(&mut self) -> Result<Self::Output> {
+    async fn execute(&mut self, ctx: &mut Context) -> Result<Self::Output> {
         let locator = self
             .args
             .locator
             .take()
             .ok_or_else(|| CliError::MissingArgument("locator".to_string()))?;
 
-        let config = self.ctx.config_mut();
+        let config = ctx.config_mut();
         config.set_active(&locator).await?;
 
         let active = config.active().ok_or(CliError::NoActiveSpace)?;
@@ -137,7 +140,7 @@ impl<'a> Command<'a> for Switch<'a> {
         })
     }
 
-    fn finalize(&self, _output: &Self::Output) {
-        self.printer().success("Active space switched");
+    fn finalize(&self, ctx: &Context, _output: &Self::Output) {
+        ctx.printer().success("Active space switched");
     }
 }

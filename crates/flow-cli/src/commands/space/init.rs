@@ -64,32 +64,40 @@ pub struct Output {
 }
 
 /// The `init` command implementation.
-pub struct Init<'a> {
+pub struct Init {
     args: Arguments,
-    ctx: &'a mut Context,
 }
 
-impl<'a> Command<'a> for Init<'a> {
+impl Command for Init {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
-        Self { args, ctx }
-    }
-
-    fn ctx(&self) -> &Context {
-        self.ctx
+    fn new(args: Self::Args) -> Self {
+        Self { args }
     }
 
     fn globals(&self) -> &GlobalArgs {
         &self.args.globals
     }
 
+    fn pipe(&mut self, stdin: &mut dyn Iterator<Item = String>) {
+        if self.args.path.is_none() {
+            if let Some(line) = stdin.next() {
+                self.args.path = Some(PathBuf::from(line));
+            }
+        }
+        if self.args.name.is_none() {
+            if let Some(line) = stdin.next() {
+                self.args.name = Some(line);
+            }
+        }
+    }
+
     fn needs_interaction(&self) -> bool {
         self.globals().interactive || self.args.path.is_none()
     }
 
-    async fn interactive(&mut self) -> miette::Result<()> {
+    async fn interactive(&mut self, ctx: &mut Context) -> miette::Result<()> {
         let forced = self.globals().interactive;
 
         // When 'forced', we ask whether the user wants to override default values of non-required arguments.
@@ -136,7 +144,7 @@ impl<'a> Command<'a> for Init<'a> {
 
             let mut prompt = Text::new("Name:").with_help_message("Name of the space");
             if !self.args.no_register {
-                prompt = prompt.with_validator(NameAlreadyRegisteredValidator::new(self.ctx.config()));
+                prompt = prompt.with_validator(NameAlreadyRegisteredValidator::new(ctx.config()));
             }
 
             if let Some(d) = &default {
@@ -152,7 +160,7 @@ impl<'a> Command<'a> for Init<'a> {
         Ok(())
     }
 
-    async fn execute(&mut self) -> miette::Result<Self::Output> {
+    async fn execute(&mut self, ctx: &mut Context) -> miette::Result<Self::Output> {
         let path = self
             .args
             .path
@@ -167,13 +175,13 @@ impl<'a> Command<'a> for Init<'a> {
             .or_else(|| path_name.map(String::from))
             .ok_or_else(|| CliError::MissingArgument("name".to_string()))?;
 
-        if !self.args.no_register && self.ctx.config().is_registered(&name.clone().into()).await {
+        if !self.args.no_register && ctx.config().is_registered(&name.as_str().into()).await {
             return Err(SpaceError::AlreadyRegistered(name).into());
         }
 
         let space = Space::init(&path, &name).await?;
         if !self.args.no_register {
-            let config = self.ctx.config_mut();
+            let config = ctx.config_mut();
             config.register(&space).await?;
             if config.active().is_none() {
                 config.set_active(&space.name().into()).await?;
@@ -183,7 +191,7 @@ impl<'a> Command<'a> for Init<'a> {
         Ok(Output { name, path })
     }
 
-    fn finalize(&self, _output: &Self::Output) {
-        self.printer().success("Space initialized");
+    fn finalize(&self, ctx: &Context, _output: &Self::Output) {
+        ctx.printer().success("Space initialized");
     }
 }

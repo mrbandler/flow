@@ -51,32 +51,35 @@ pub struct Output {
 }
 
 /// The `register` command implementation.
-pub struct Register<'a> {
+pub struct Register {
     args: Arguments,
-    ctx: &'a mut Context,
 }
 
-impl<'a> Command<'a> for Register<'a> {
+impl Command for Register {
     type Args = Arguments;
     type Output = Output;
 
-    fn new(args: Self::Args, ctx: &'a mut Context) -> Self {
-        Self { args, ctx }
-    }
-
-    fn ctx(&self) -> &Context {
-        self.ctx
+    fn new(args: Self::Args) -> Self {
+        Self { args }
     }
 
     fn globals(&self) -> &GlobalArgs {
         &self.args.globals
     }
 
+    fn pipe(&mut self, stdin: &mut dyn Iterator<Item = String>) {
+        if self.args.path.is_none() {
+            if let Some(line) = stdin.next() {
+                self.args.path = Some(PathBuf::from(line));
+            }
+        }
+    }
+
     fn needs_interaction(&self) -> bool {
         self.globals().interactive || self.args.path.is_none()
     }
 
-    async fn interactive(&mut self) -> Result<()> {
+    async fn interactive(&mut self, _ctx: &mut Context) -> Result<()> {
         let forced = self.globals().interactive;
 
         if forced || self.args.path.is_none() {
@@ -99,7 +102,7 @@ impl<'a> Command<'a> for Register<'a> {
         Ok(())
     }
 
-    async fn execute(&mut self) -> Result<Self::Output> {
+    async fn execute(&mut self, ctx: &mut Context) -> Result<Self::Output> {
         let path = self
             .args
             .path
@@ -109,7 +112,7 @@ impl<'a> Command<'a> for Register<'a> {
         let space = Space::load(path).await?;
         let name = space.name().to_string();
 
-        let config = self.ctx.config_mut();
+        let config = ctx.config_mut();
         config.register(&space).await?;
         if config.active().is_none() {
             config.set_active(&name.as_str().into()).await?;
@@ -121,7 +124,7 @@ impl<'a> Command<'a> for Register<'a> {
         })
     }
 
-    fn finalize(&self, _output: &Self::Output) {
-        self.printer().success("Space registered");
+    fn finalize(&self, ctx: &Context, _output: &Self::Output) {
+        ctx.printer().success("Space registered");
     }
 }

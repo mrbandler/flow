@@ -11,6 +11,7 @@ use miette::Result;
 use tokio::fs::{
     canonicalize, create_dir, create_dir_all, metadata, read, read_dir, read_to_string, try_exists, write,
 };
+use tracing::{debug, trace};
 
 use crate::filesystem::traits::Filesystem;
 use crate::IoError;
@@ -83,6 +84,7 @@ impl Filesystem for LocalFilesystem {
     /// This does **not** create parent directories. Use this only when
     /// the parent directory is known to exist.
     async fn create_dir(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
+        trace!("Creating directory {}", path.as_ref().display());
         create_dir(&path).await.map_err(|e| IoError(e).into())
     }
 
@@ -101,6 +103,7 @@ impl Filesystem for LocalFilesystem {
     /// This does create parent directories. Use this only when
     /// the parent directory is known to exist.
     async fn create_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
+        trace!("Creating directory tree {}", path.as_ref().display());
         create_dir_all(&path).await.map_err(|e| IoError(e).into())
     }
 
@@ -109,6 +112,7 @@ impl Filesystem for LocalFilesystem {
     /// This recursively deletes all files and subdirectories within the
     /// specified path. Use with caution as this operation is not reversible.
     async fn remove_dir_all(&self, path: impl AsRef<Path> + Send + Sync) -> Result<()> {
+        debug!("Removing directory tree at {}", path.as_ref().display());
         tokio::fs::remove_dir_all(&path)
             .await
             .map_err(|e| IoError(e).into())
@@ -123,6 +127,11 @@ impl Filesystem for LocalFilesystem {
         path: impl AsRef<Path> + Send + Sync,
         contents: impl AsRef<[u8]> + Send + Sync,
     ) -> Result<()> {
+        trace!(
+            "Writing {} bytes to {}",
+            contents.as_ref().len(),
+            path.as_ref().display()
+        );
         write(&path, &contents).await.map_err(|e| IoError(e).into())
     }
 

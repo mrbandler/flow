@@ -25,6 +25,10 @@ pub struct GlobalArgs {
     #[arg(short, long, global = true)]
     pub verbose: bool,
 
+    /// Enable trace-level logging output (implies --verbose).
+    #[arg(short, long, global = true)]
+    pub trace: bool,
+
     /// Suppress non-error output.
     #[arg(short, long, global = true)]
     pub quiet: bool,

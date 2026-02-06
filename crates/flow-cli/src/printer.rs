@@ -27,23 +27,33 @@ use crate::theme::{symbols, CliTheme, HexColorExt};
 /// - **Quiet mode**: Suppresses all non-error output
 ///
 /// Colors are determined by the provided theme's base16 palette.
-pub struct Printer<'a> {
-    theme: &'a CliTheme,
+#[allow(clippy::struct_excessive_bools)]
+pub struct Printer {
+    theme: CliTheme,
     json: bool,
     verbose: bool,
+    trace: bool,
     quiet: bool,
 }
 
-impl<'a> Printer<'a> {
+impl Printer {
     /// Creates a new printer with the specified theme and output modes.
     #[must_use]
-    pub const fn new(theme: &'a CliTheme, json: bool, verbose: bool, quiet: bool) -> Self {
+    #[allow(clippy::fn_params_excessive_bools)]
+    pub const fn new(theme: CliTheme, json: bool, verbose: bool, trace: bool, quiet: bool) -> Self {
         Self {
             theme,
             json,
-            verbose,
+            verbose: verbose || trace,
+            trace,
             quiet,
         }
+    }
+
+    /// Returns a reference to the theme.
+    #[must_use]
+    pub const fn theme(&self) -> &CliTheme {
+        &self.theme
     }
 
     /// Prints a plain message to stdout.
@@ -128,6 +138,19 @@ impl<'a> Printer<'a> {
                 symbols::DEBUG.with(color),
                 label.as_ref().with(color),
                 value.as_ref().with(color).italic()
+            );
+        }
+    }
+
+    /// Prints a trace message (only shown with `--trace` flag).
+    pub fn trace(&self, message: impl AsRef<str>) {
+        if self.trace && !self.quiet && !self.json {
+            let color = self.theme.dim().to_crossterm();
+            let _ = writeln!(
+                stdout(),
+                "{} {}",
+                symbols::DEBUG.with(color),
+                message.as_ref().with(color)
             );
         }
     }

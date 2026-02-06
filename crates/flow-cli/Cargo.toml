@@ -26,6 +26,8 @@ inquire = { version = "0.9.2", features = ["date", "editor"] }
 lazyinit = "0.2"
 crossterm = "0.29"
 tabled = "0.17"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [lints]
 workspace = true
