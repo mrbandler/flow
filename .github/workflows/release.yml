@@ -30,7 +30,7 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Flow ${{ github.ref_name }}
           draft: true
@@ -304,7 +304,7 @@ jobs:
 
       - name: Upload release artifact (Unix)
         if: runner.os != 'Windows'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/${{ matrix.asset_name }}.tar.gz
@@ -314,7 +314,7 @@ jobs:
 
       - name: Upload release artifact (Windows)
         if: runner.os == 'Windows'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/${{ matrix.asset_name }}.zip
@@ -375,7 +375,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: false
         env:
