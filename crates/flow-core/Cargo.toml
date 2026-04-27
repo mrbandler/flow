@@ -18,7 +18,7 @@ tokio = { workspace = true }
 miette = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-loro = "1.10.3"
+loro = "1.12.0"
 cross-xdg = "2.1"
 
 [lints]
